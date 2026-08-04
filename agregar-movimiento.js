@@ -10,6 +10,7 @@ const CATEGORIES = {
 let currentType = 'expense';
 let selectedCategory = null;
 let userId = null;
+let editingId = null;
 
 const amountInput = document.getElementById('amount-input');
 const amountPrefix = document.getElementById('amount-prefix');
@@ -83,7 +84,7 @@ amountInput.addEventListener('input', handleAmountInput);
 descriptionInput.addEventListener('input', validateForm);
 
 document.getElementById('cancel-btn').addEventListener('click', () => {
-  window.location.href = 'index.html';
+  window.location.href = editingId ? 'movimientos.html' : 'index.html';
 });
 
 async function saveMovement() {
@@ -95,14 +96,19 @@ async function saveMovement() {
   saveCta.disabled = true;
   formMessage.textContent = '';
 
-  const { error } = await supabaseClient.from('transactions').insert({
-    user_id: userId,
+  const payload = {
     type: currentType,
     description,
     category: selectedCategory,
     amount,
     occurred_on: occurredOn
-  });
+  };
+
+  const action = editingId
+    ? supabaseClient.from('transactions').update(payload).eq('id', editingId)
+    : supabaseClient.from('transactions').insert({ ...payload, user_id: userId });
+
+  const { error } = await action;
 
   if (error) {
     formMessage.textContent = 'No se pudo guardar. Probá de nuevo.';
@@ -111,7 +117,7 @@ async function saveMovement() {
     return;
   }
 
-  window.location.href = 'index.html';
+  window.location.href = editingId ? 'movimientos.html' : 'index.html';
 }
 
 saveBtn.addEventListener('click', saveMovement);
@@ -122,10 +128,45 @@ async function init() {
   if (!session) return;
   userId = session.user.id;
 
+  const params = new URLSearchParams(window.location.search);
+  editingId = params.get('id');
+
   const today = new Date().toISOString().slice(0, 10);
   dateInput.value = today;
 
+  if (editingId) {
+    document.querySelector('.sheet-title').textContent = 'EDITAR MOVIMIENTO';
+
+    const { data: tx, error } = await supabaseClient
+      .from('transactions')
+      .select('type, description, category, amount, occurred_on')
+      .eq('id', editingId)
+      .maybeSingle();
+
+    if (error || !tx) {
+      formMessage.textContent = 'No se pudo cargar el movimiento.';
+      renderCategories();
+      return;
+    }
+
+    currentType = tx.type;
+    selectedCategory = tx.category;
+    descriptionInput.value = tx.description;
+    dateInput.value = tx.occurred_on;
+
+    const amountNum = Number(tx.amount);
+    amountInput.value = amountNum.toLocaleString('es-AR');
+    amountInput.dataset.raw = String(amountNum);
+
+    typeExpenseBtn.classList.toggle('active', currentType === 'expense');
+    typeIncomeBtn.classList.toggle('active', currentType === 'income');
+    amountInput.classList.toggle('income', currentType === 'income');
+    amountPrefix.classList.toggle('income', currentType === 'income');
+    saveCta.classList.toggle('income', currentType === 'income');
+  }
+
   renderCategories();
+  validateForm();
 }
 
 init();
