@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Agregar movimiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .sheet {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 20px 40px;
+  }
+
+  .sheet-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 8px;
+  }
+
+  .sheet-cancel {
+    color: var(--text-secondary);
+    font-size: 15px;
+    background: none;
+    border: none;
+  }
+
+  .sheet-title {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .sheet-save {
+    color: var(--blue);
+    font-size: 15px;
+    font-weight: 600;
+    background: none;
+    border: none;
+  }
+
+  .sheet-save:disabled {
+    color: var(--text-tertiary);
+  }
+
+  .type-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 24px 0;
+  }
+
+  .type-option {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    padding-bottom: 6px;
+    border-bottom: 2px solid transparent;
+  }
+
+  .type-option.active.expense {
+    color: var(--red);
+    border-bottom-color: var(--red);
+    font-weight: 600;
+  }
+
+  .type-option.active.income {
+    color: var(--green);
+    border-bottom-color: var(--green);
+    font-weight: 600;
+  }
+
+  .amount-input-wrap {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .amount-input {
+    background: none;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -1px;
+    font-family: inherit;
+    width: 100%;
+    color: var(--red);
+  }
+
+  .amount-input.income {
+    color: var(--green);
+  }
+
+  .amount-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .category-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .category-chip {
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .category-chip.selected {
+    background: var(--hover);
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+  }
+
+  .field-input {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .field-input input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .field-input input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: auto;
+  }
+
+  .date-row label {
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  .date-row input[type="date"] {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    text-align: right;
+  }
+
+  .save-cta {
+    width: 100%;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--red);
+    border: none;
+    color: #0B0D12;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 32px;
+    transition: background 0.15s var(--ease), opacity 0.15s var(--ease);
+  }
+
+  .save-cta.income {
+    background: var(--green);
+  }
+
+  .save-cta:disabled {
+    opacity: 0.4;
+  }
+
+  .form-message {
+    text-align: center;
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 12px;
+    min-height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="sheet-top">
+    <button class="sheet-cancel" id="cancel-btn">Cancelar</button>
+    <div class="sheet-title">NUEVO MOVIMIENTO</div>
+    <button class="sheet-save" id="save-btn" disabled>Guardar</button>
+  </div>
+
+  <div class="type-toggle">
+    <button class="type-option expense active" id="type-expense" data-type="expense">Gasto</button>
+    <button class="type-option income" id="type-income" data-type="income">Ingreso</button>
+  </div>
+
+  <div class="amount-input-wrap">
+    <input type="number" inputmode="decimal" class="amount-input" id="amount-input" placeholder="$0" min="0" step="1">
+  </div>
+
+  <div class="category-grid" id="category-grid"></div>
+
+  <div class="field-input">
+    <input type="text" id="description-input" placeholder="Descripción (ej: Café con Fer)">
+  </div>
+
+  <div class="date-row">
+    <label for="date-input">Fecha</label>
+    <input type="date" id="date-input">
+  </div>
+
+  <button class="save-cta" id="save-cta" disabled>Guardar</button>
+  <div class="form-message" id="form-message"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="utils.js"></script>
+<script src="agregar-movimiento.js"></script>
+</body>
+</html>
