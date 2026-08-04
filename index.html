@@ -63,6 +63,10 @@
             <a href="movimientos.html" class="section-link">Ver todos</a>
           </div>
           <div class="movement-list" id="movement-list"></div>
+          <div class="empty-state" id="movement-empty" style="display:none">
+            <div class="empty-state-text">Todavía no cargaste ningún movimiento.</div>
+            <div class="empty-state-hint">Usá el botón + para agregar el primero.</div>
+          </div>
         </div>
 
         <div class="insight-card">
@@ -78,6 +82,8 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
 <script src="utils.js"></script>
 <script src="nav.js"></script>
 <script src="dashboard.js"></script>
