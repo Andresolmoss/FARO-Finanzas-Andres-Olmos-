@@ -55,6 +55,7 @@ function handleAmountInput() {
   const num = digits ? parseInt(digits, 10) : 0;
   amountInput.value = digits ? num.toLocaleString('es-AR') : '';
   amountInput.dataset.raw = String(num);
+  amountInput.size = Math.max(1, amountInput.value.length || 1);
   validateForm();
 }
 
@@ -157,6 +158,7 @@ async function init() {
     const amountNum = Number(tx.amount);
     amountInput.value = amountNum.toLocaleString('es-AR');
     amountInput.dataset.raw = String(amountNum);
+    amountInput.size = Math.max(1, amountInput.value.length || 1);
 
     typeExpenseBtn.classList.toggle('active', currentType === 'expense');
     typeIncomeBtn.classList.toggle('active', currentType === 'income');
