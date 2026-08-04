@@ -40,7 +40,6 @@ function initFab() {
   if (!fab) return;
   fab.innerHTML = iconSvg('plus', 22);
   fab.addEventListener('click', () => {
-    // Placeholder: la pantalla "Agregar movimiento" se conecta en el próximo paso.
-    alert('Acá se va a abrir la pantalla de "Agregar movimiento". La construimos en el próximo paso.');
+    window.location.href = 'agregar-movimiento.html';
   });
 }
