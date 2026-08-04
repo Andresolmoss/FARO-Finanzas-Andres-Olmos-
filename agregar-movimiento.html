@@ -80,20 +80,34 @@
   }
 
   .amount-input-wrap {
-    text-align: center;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
     margin-bottom: 32px;
+  }
+
+  .amount-prefix {
+    font-size: 40px;
+    font-weight: 600;
+    color: var(--red);
+  }
+
+  .amount-prefix.income {
+    color: var(--green);
   }
 
   .amount-input {
     background: none;
     border: none;
     outline: none;
-    text-align: center;
+    text-align: left;
     font-size: 48px;
     font-weight: 600;
     letter-spacing: -1px;
     font-family: inherit;
-    width: 100%;
+    width: auto;
+    max-width: 280px;
     color: var(--red);
   }
 
@@ -219,7 +233,8 @@
   </div>
 
   <div class="amount-input-wrap">
-    <input type="number" inputmode="decimal" class="amount-input" id="amount-input" placeholder="$0" min="0" step="1">
+    <span class="amount-prefix" id="amount-prefix">$</span>
+    <input type="text" inputmode="numeric" class="amount-input" id="amount-input" placeholder="0" autocomplete="off">
   </div>
 
   <div class="category-grid" id="category-grid"></div>
