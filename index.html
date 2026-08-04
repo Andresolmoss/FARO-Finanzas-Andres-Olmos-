@@ -8,21 +8,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
 </head>
 <body>
-
 <div class="app-shell">
-
   <nav class="sidebar" id="sidebar"></nav>
-
   <main class="main">
     <div class="greeting" id="greeting"></div>
-
     <div class="dashboard-grid">
       <div class="dashboard-col-left">
         <div class="balance-label">Disponible hoy</div>
         <div class="balance-amount tabular" id="balance-amount">$0</div>
-
         <div class="stat-row">
           <div class="stat-card">
             <div class="label">Ingresos</div>
@@ -37,7 +42,6 @@
             <div class="value savings tabular" id="stat-savings">$0</div>
           </div>
         </div>
-
         <div class="chart-card">
           <svg viewBox="0 0 640 160" preserveAspectRatio="none" id="chart-svg">
             <defs>
@@ -55,7 +59,6 @@
           </div>
         </div>
       </div>
-
       <div class="dashboard-col-right">
         <div>
           <div class="section-header">
@@ -68,7 +71,6 @@
             <div class="empty-state-hint">Usá el botón + para agregar el primero.</div>
           </div>
         </div>
-
         <div class="insight-card">
           <div class="insight-dot"></div>
           <div class="insight-text" id="insight-text"></div>
@@ -76,12 +78,9 @@
       </div>
     </div>
   </main>
-
   <nav class="bottom-nav" id="bottom-nav"></nav>
   <button class="fab" id="fab" aria-label="Agregar movimiento"></button>
-
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabaseClient.js"></script>
 <script src="utils.js"></script>
