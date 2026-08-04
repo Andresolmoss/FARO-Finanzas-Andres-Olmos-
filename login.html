@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Ingresar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 380px;
+  }
+  .login-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .login-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .login-subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  .login-field {
+    background: var(--card);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .login-field input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .login-field input::placeholder {
+    color: var(--text-tertiary);
+  }
+  .login-button {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--radius-md);
+    background: var(--blue);
+    border: none;
+    color: var(--bg);
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 8px;
+    transition: opacity 0.15s var(--ease);
+  }
+  .login-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .login-toggle {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .login-toggle button {
+    background: none;
+    border: none;
+    color: var(--blue);
+    font-size: 14px;
+    font-family: inherit;
+    padding: 0;
+  }
+  .login-message {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 16px;
+    min-height: 16px;
+  }
+  .login-message.error { color: var(--red); }
+  .login-message.success { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-title">Faro</div>
+      <div class="login-subtitle">Tu resumen financiero, siempre claro</div>
+    </div>
+
+    <form id="login-form">
+      <div class="login-field">
+        <input type="email" id="email" placeholder="tu@email.com" required autocomplete="email">
+      </div>
+      <div class="login-field">
+        <input type="password" id="password" placeholder="Contraseña" required autocomplete="current-password" minlength="6">
+      </div>
+      <button type="submit" class="login-button" id="submit-btn">Ingresar</button>
+    </form>
+
+    <div class="login-toggle">
+      <span id="toggle-text">¿Primera vez acá?</span>
+      <button type="button" id="toggle-btn">Crear cuenta</button>
+    </div>
+
+    <div class="login-message" id="message"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script>
+  let mode = 'login'; // 'login' | 'signup'
+
+  const form = document.getElementById('login-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const toggleBtn = document.getElementById('toggle-btn');
+  const toggleText = document.getElementById('toggle-text');
+  const messageEl = document.getElementById('message');
+
+  toggleBtn.addEventListener('click', () => {
+    mode = mode === 'login' ? 'signup' : 'login';
+    submitBtn.textContent = mode === 'login' ? 'Ingresar' : 'Crear cuenta';
+    toggleText.textContent = mode === 'login' ? '¿Primera vez acá?' : '¿Ya tenés cuenta?';
+    toggleBtn.textContent = mode === 'login' ? 'Crear cuenta' : 'Ingresar';
+    messageEl.textContent = '';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    submitBtn.disabled = true;
+    messageEl.textContent = '';
+    messageEl.className = 'login-message';
+
+    const action = mode === 'login'
+      ? supabaseClient.auth.signInWithPassword({ email, password })
+      : supabaseClient.auth.signUp({ email, password });
+
+    const { data, error } = await action;
+    submitBtn.disabled = false;
+
+    if (error) {
+      messageEl.textContent = error.message;
+      messageEl.classList.add('error');
+      return;
+    }
+
+    if (mode === 'signup' && !data.session) {
+      messageEl.textContent = 'Cuenta creada. Revisá tu email para confirmar.';
+      messageEl.classList.add('success');
+      return;
+    }
+
+    window.location.href = 'index.html';
+  });
+
+  // Si ya hay sesión activa, directo al dashboard
+  getSession().then(session => {
+    if (session) window.location.href = 'index.html';
+  });
+</script>
+</body>
+</html>
