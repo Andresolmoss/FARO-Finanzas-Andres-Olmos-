@@ -332,6 +332,22 @@ button {
   margin-top: 2px;
 }
 
+.empty-state {
+  padding: 24px 0;
+}
+
+.empty-state-text {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.empty-state-hint {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
 .insight-card {
   background: var(--hover);
   border: 1px solid rgba(96, 165, 250, 0.15);
