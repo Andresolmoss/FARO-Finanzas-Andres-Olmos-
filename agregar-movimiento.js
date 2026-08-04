@@ -12,6 +12,7 @@ let selectedCategory = null;
 let userId = null;
 
 const amountInput = document.getElementById('amount-input');
+const amountPrefix = document.getElementById('amount-prefix');
 const descriptionInput = document.getElementById('description-input');
 const dateInput = document.getElementById('date-input');
 const categoryGrid = document.getElementById('category-grid');
@@ -37,14 +38,27 @@ function setType(type) {
   typeIncomeBtn.classList.toggle('active', type === 'income');
 
   amountInput.classList.toggle('income', type === 'income');
+  amountPrefix.classList.toggle('income', type === 'income');
   saveCta.classList.toggle('income', type === 'income');
 
   renderCategories();
   validateForm();
 }
 
+function getRawAmount() {
+  return Number(amountInput.dataset.raw || 0);
+}
+
+function handleAmountInput() {
+  const digits = amountInput.value.replace(/\D/g, '');
+  const num = digits ? parseInt(digits, 10) : 0;
+  amountInput.value = digits ? num.toLocaleString('es-AR') : '';
+  amountInput.dataset.raw = String(num);
+  validateForm();
+}
+
 function validateForm() {
-  const amount = parseFloat(amountInput.value);
+  const amount = getRawAmount();
   const description = descriptionInput.value.trim();
   const valid = amount > 0 && description.length > 0;
 
@@ -65,7 +79,7 @@ categoryGrid.addEventListener('click', (e) => {
   renderCategories();
 });
 
-amountInput.addEventListener('input', validateForm);
+amountInput.addEventListener('input', handleAmountInput);
 descriptionInput.addEventListener('input', validateForm);
 
 document.getElementById('cancel-btn').addEventListener('click', () => {
@@ -73,7 +87,7 @@ document.getElementById('cancel-btn').addEventListener('click', () => {
 });
 
 async function saveMovement() {
-  const amount = parseFloat(amountInput.value);
+  const amount = getRawAmount();
   const description = descriptionInput.value.trim();
   const occurredOn = dateInput.value;
 
