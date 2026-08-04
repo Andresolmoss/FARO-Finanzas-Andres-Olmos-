@@ -3,259 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Faro — Agregar movimiento</title>
+<title>Faro — Movimientos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<style>
-  .sheet {
-    max-width: 480px;
-    margin: 0 auto;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 20px 20px 40px;
-  }
 
-  .sheet-top {
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
+<style>
+  .page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0 8px;
+    margin-bottom: 20px;
   }
 
-  .sheet-cancel {
-    color: var(--text-secondary);
-    font-size: 15px;
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 8px;
+  }
+
+  .filter-tab {
     background: none;
     border: none;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text-tertiary);
+    padding-bottom: 8px;
+    border-bottom: 2px solid transparent;
   }
 
-  .sheet-title {
+  .filter-tab.active {
+    color: var(--text-primary);
+    font-weight: 500;
+    border-bottom-color: var(--blue);
+  }
+
+  .group-date {
     color: var(--text-tertiary);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.3px;
+    margin: 24px 0 4px;
   }
 
-  .sheet-save {
-    color: var(--blue);
-    font-size: 15px;
-    font-weight: 600;
-    background: none;
-    border: none;
+  .movement-row {
+    position: relative;
+    cursor: pointer;
   }
 
-  .sheet-save:disabled {
-    color: var(--text-tertiary);
+  .movement-row:active {
+    background: var(--hover);
+    border-radius: var(--radius-sm);
   }
 
-  .type-toggle {
-    display: flex;
+  .content-max {
+    max-width: 720px;
+  }
+
+  /* Panel de edición / borrado (sheet inferior simple) */
+  .edit-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: flex-end;
     justify-content: center;
-    gap: 24px;
-    margin: 24px 0;
   }
 
-  .type-option {
+  .edit-overlay.open {
+    display: flex;
+  }
+
+  .edit-panel {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+  }
+
+  .edit-panel-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .edit-panel-amount {
     font-size: 15px;
-    color: var(--text-tertiary);
-    background: none;
-    border: none;
-    padding-bottom: 6px;
-    border-bottom: 2px solid transparent;
-  }
-
-  .type-option.active.expense {
-    color: var(--red);
-    border-bottom-color: var(--red);
-    font-weight: 600;
-  }
-
-  .type-option.active.income {
-    color: var(--green);
-    border-bottom-color: var(--green);
-    font-weight: 600;
-  }
-
-  .amount-input-wrap {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: 32px;
-  }
-
-  .amount-prefix {
-    font-size: 40px;
-    font-weight: 600;
-    color: var(--red);
-  }
-
-  .amount-prefix.income {
-    color: var(--green);
-  }
-
-  .amount-input {
-    background: none;
-    border: none;
-    outline: none;
-    text-align: left;
-    font-size: 48px;
-    font-weight: 600;
-    letter-spacing: -1px;
-    font-family: inherit;
-    font-variant-numeric: tabular-nums;
-    width: auto;
-    max-width: 280px;
-    color: var(--red);
-  }
-
-  .amount-input.income {
-    color: var(--green);
-  }
-
-  .amount-input::placeholder {
-    color: var(--text-tertiary);
-  }
-
-  .category-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    color: var(--text-secondary);
     margin-bottom: 24px;
   }
 
-  .category-chip {
-    padding: 10px 16px;
-    border-radius: 20px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-family: inherit;
-  }
-
-  .category-chip.selected {
+  .edit-action {
+    width: 100%;
+    height: 52px;
+    border-radius: 14px;
     background: var(--hover);
-    border-color: var(--text-primary);
-    color: var(--text-primary);
-  }
-
-  .field-input {
-    background: var(--card);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-
-  .field-input input {
-    background: none;
     border: none;
-    outline: none;
     color: var(--text-primary);
     font-size: 15px;
+    font-weight: 500;
     font-family: inherit;
-    width: 100%;
+    margin-bottom: 12px;
   }
 
-  .field-input input::placeholder {
-    color: var(--text-tertiary);
-  }
-
-  .date-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--card);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: auto;
-  }
-
-  .date-row label {
-    color: var(--text-secondary);
-    font-size: 15px;
-  }
-
-  .date-row input[type="date"] {
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
-    font-size: 15px;
-    font-family: inherit;
-    text-align: right;
-  }
-
-  .save-cta {
-    width: 100%;
-    height: 56px;
-    border-radius: 16px;
-    background: var(--red);
-    border: none;
-    color: #0B0D12;
-    font-size: 16px;
-    font-weight: 600;
-    margin-top: 32px;
-    transition: background 0.15s var(--ease), opacity 0.15s var(--ease);
-  }
-
-  .save-cta.income {
-    background: var(--green);
-  }
-
-  .save-cta:disabled {
-    opacity: 0.4;
-  }
-
-  .form-message {
-    text-align: center;
+  .edit-action.delete {
     color: var(--red);
-    font-size: 13px;
-    margin-top: 12px;
-    min-height: 16px;
+  }
+
+  .edit-action.cancel {
+    background: none;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  .empty-state {
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  @media (min-width: 900px) {
+    .page-title {
+      font-size: 28px;
+    }
   }
 </style>
 </head>
 <body>
 
-<div class="sheet">
-  <div class="sheet-top">
-    <button class="sheet-cancel" id="cancel-btn">Cancelar</button>
-    <div class="sheet-title">NUEVO MOVIMIENTO</div>
-    <button class="sheet-save" id="save-btn" disabled>Guardar</button>
+<div class="app-shell">
+
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="content-max" style="margin: 0 auto">
+      <div class="page-header">
+        <div class="page-title">Movimientos</div>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">Todos</button>
+        <button class="filter-tab" data-filter="income">Ingresos</button>
+        <button class="filter-tab" data-filter="expense">Gastos</button>
+      </div>
+
+      <div id="movements-container"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div style="color: var(--text-primary); font-size: 15px; font-weight: 500;">No hay movimientos para mostrar.</div>
+        <div style="color: var(--text-tertiary); font-size: 13px; margin-top: 6px;">Usá el botón + para agregar uno.</div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <button class="fab" id="fab" aria-label="Agregar movimiento"></button>
+
+</div>
+
+<!-- Panel de editar / borrar -->
+<div class="edit-overlay" id="edit-overlay">
+  <div class="edit-panel">
+    <div class="edit-panel-title" id="edit-panel-title"></div>
+    <div class="edit-panel-amount" id="edit-panel-amount"></div>
+    <button class="edit-action" id="edit-btn">Editar</button>
+    <button class="edit-action delete" id="delete-btn">Eliminar</button>
+    <button class="edit-action cancel" id="cancel-edit-btn">Cancelar</button>
   </div>
-
-  <div class="type-toggle">
-    <button class="type-option expense active" id="type-expense" data-type="expense">Gasto</button>
-    <button class="type-option income" id="type-income" data-type="income">Ingreso</button>
-  </div>
-
-  <div class="amount-input-wrap">
-    <span class="amount-prefix" id="amount-prefix">$</span>
-    <input type="text" inputmode="numeric" class="amount-input" id="amount-input" placeholder="0" autocomplete="off" size="1">
-  </div>
-
-  <div class="category-grid" id="category-grid"></div>
-
-  <div class="field-input">
-    <input type="text" id="description-input" placeholder="Descripción (ej: Café con Fer)">
-  </div>
-
-  <div class="date-row">
-    <label for="date-input">Fecha</label>
-    <input type="date" id="date-input">
-  </div>
-
-  <button class="save-cta" id="save-cta" disabled>Guardar</button>
-  <div class="form-message" id="form-message"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabaseClient.js"></script>
 <script src="utils.js"></script>
-<script src="agregar-movimiento.js"></script>
+<script src="nav.js"></script>
+<script src="movimientos.js"></script>
 </body>
 </html>
