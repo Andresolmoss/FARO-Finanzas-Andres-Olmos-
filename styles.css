@@ -277,20 +277,28 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 0;
+  background: var(--card);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: background 0.15s var(--ease);
+}
+
+.movement-row:last-child {
+  margin-bottom: 0;
 }
 
 .movement-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 46px;
+  height: 46px;
+  border-radius: 23px;
   background: var(--hover);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 17px;
   font-weight: 600;
 }
 
