@@ -20,10 +20,13 @@ let currentType = 'expense';
 let rawAmount = 0; // en pesos, sin decimales
 let categories = []; // [{id, name, type}]
 let selectedCategory = null;
+let paymentMethods = []; // [{id, name}]
+let selectedPaymentMethod = null;
 let editingId = null; // id del movimiento si estamos editando
 
 const amountInput = document.getElementById('amount-input');
 const chipRow = document.getElementById('chip-row');
+const paymentChipRow = document.getElementById('payment-chip-row');
 const titleInput = document.getElementById('title-input');
 const notesInput = document.getElementById('notes-input');
 const dateInput = document.getElementById('date-input');
@@ -98,6 +101,50 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function renderPaymentChips() {
+  paymentChipRow.innerHTML = paymentMethods.map(pm => `
+    <button type="button" class="chip ${pm.id === selectedPaymentMethod ? 'selected' : ''}" data-payment-id="${pm.id}">${escapeHtml(pm.name)}</button>
+  `).join('');
+}
+
+paymentChipRow.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  selectedPaymentMethod = chip.dataset.paymentId;
+  renderPaymentChips();
+});
+
+async function loadPaymentMethods() {
+  const { data, error } = await supabaseClient
+    .from('payment_methods')
+    .select('id, name')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error cargando métodos de pago:', error);
+    paymentMethods = [];
+    return;
+  }
+
+  if (data.length === 0) {
+    const defaults = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'].map(name => ({ user_id: userId, name }));
+    const { data: inserted, error: insertError } = await supabaseClient
+      .from('payment_methods')
+      .insert(defaults)
+      .select('id, name');
+
+    if (insertError) {
+      console.error('Error creando métodos de pago por defecto:', insertError);
+      paymentMethods = [];
+      return;
+    }
+    paymentMethods = inserted;
+  } else {
+    paymentMethods = data;
+  }
+}
+
 // Fecha
 dateInput.addEventListener('change', () => {
   updateDateDisplay(dateInput.value);
@@ -147,7 +194,7 @@ async function loadCategories() {
 async function loadForEdit(id) {
   const { data, error } = await supabaseClient
     .from('transactions')
-    .select('id, type, description, category, amount, occurred_on')
+    .select('id, type, description, notes, category, amount, occurred_on, payment_method')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle();
@@ -177,6 +224,16 @@ async function loadForEdit(id) {
     selectedCategory = tempId;
   }
   renderChips();
+
+  const paymentMatch = paymentMethods.find(pm => pm.name === data.payment_method);
+  if (paymentMatch) {
+    selectedPaymentMethod = paymentMatch.id;
+  } else if (data.payment_method) {
+    const tempPaymentId = 'temp-' + data.payment_method;
+    paymentMethods.push({ id: tempPaymentId, name: data.payment_method });
+    selectedPaymentMethod = tempPaymentId;
+  }
+  renderPaymentChips();
 }
 
 function validate() {
@@ -197,12 +254,14 @@ async function save() {
   saveTopBtn.disabled = true;
 
   const categoryObj = categories.find(c => c.id === selectedCategory);
+  const paymentObj = paymentMethods.find(pm => pm.id === selectedPaymentMethod);
   const payload = {
     user_id: userId,
     type: currentType,
     description: titleInput.value.trim(),
     notes: notesInput.value.trim() || null,
     category: categoryObj ? categoryObj.name : null,
+    payment_method: paymentObj ? paymentObj.name : null,
     amount: rawAmount,
     occurred_on: dateInput.value || todayISO()
   };
@@ -242,6 +301,9 @@ async function init() {
 
   await loadCategories();
   renderChips();
+
+  await loadPaymentMethods();
+  renderPaymentChips();
 
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
