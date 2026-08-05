@@ -15,6 +15,12 @@ const DEFAULT_CATEGORIES = [
   { name: '💵 Otro ingreso', type: 'income' }
 ];
 
+// Categoría especial del sistema: no vive en la tabla `categories`,
+// no se puede borrar/renombrar desde Configuración, y dispara el
+// selector de tarjeta para calcular el monto del resumen solo.
+const SYSTEM_PAGAR_RESUMEN_ID = 'SYSTEM_PAGAR_RESUMEN';
+const SYSTEM_PAGAR_RESUMEN_LABEL = '💳 Pagar resumen';
+
 let userId = null;
 let currentType = 'expense';
 let rawAmount = 0; // en pesos, sin decimales
@@ -23,6 +29,12 @@ let selectedCategory = null;
 let paymentMethods = []; // [{id, name}]
 let selectedPaymentMethod = null;
 let editingId = null; // id del movimiento si estamos editando
+
+// Estado del módulo "Pagar resumen"
+let resumenCards = [];
+let resumenPurchases = [];
+let resumenPurchasesLoaded = false;
+let resumenTodayKey = null;
 
 const amountInput = document.getElementById('amount-input');
 const chipRow = document.getElementById('chip-row');
@@ -36,6 +48,9 @@ const saveTopBtn = document.getElementById('save-top-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const topbarLabel = document.getElementById('topbar-label');
 const formError = document.getElementById('form-error');
+const resumenCardRow = document.getElementById('resumen-card-row');
+const resumenCardSelect = document.getElementById('resumen-card-select');
+const resumenDetail = document.getElementById('resumen-detail');
 
 function todayISO() {
   const d = new Date();
@@ -73,6 +88,7 @@ function setType(type) {
     tab.classList.toggle('active', tab.dataset.type === type);
   });
   selectedCategory = null;
+  hideResumenCardPicker();
   renderChips();
   updateAmountDisplay();
 }
@@ -83,9 +99,18 @@ document.querySelectorAll('.type-tab').forEach(tab => {
 
 function renderChips() {
   const list = categories.filter(c => c.type === currentType);
-  chipRow.innerHTML = list.map(c => `
+  let html = list.map(c => `
     <button type="button" class="chip ${c.id === selectedCategory ? 'selected' : ''}" data-id="${c.id}">${escapeHtml(c.name)}</button>
   `).join('');
+
+  // "Pagar resumen" solo tiene sentido para gastos
+  if (currentType === 'expense') {
+    html += `
+      <button type="button" class="chip ${selectedCategory === SYSTEM_PAGAR_RESUMEN_ID ? 'selected' : ''}" data-id="${SYSTEM_PAGAR_RESUMEN_ID}">${SYSTEM_PAGAR_RESUMEN_LABEL}</button>
+    `;
+  }
+
+  chipRow.innerHTML = html;
 }
 
 chipRow.addEventListener('click', (e) => {
@@ -93,6 +118,12 @@ chipRow.addEventListener('click', (e) => {
   if (!chip) return;
   selectedCategory = chip.dataset.id;
   renderChips();
+
+  if (selectedCategory === SYSTEM_PAGAR_RESUMEN_ID) {
+    showResumenCardPicker();
+  } else {
+    hideResumenCardPicker();
+  }
 });
 
 function escapeHtml(str) {
@@ -144,6 +175,57 @@ async function loadPaymentMethods() {
     paymentMethods = data;
   }
 }
+
+// ---------- Pagar resumen ----------
+
+async function ensureResumenDataLoaded() {
+  if (resumenPurchasesLoaded) return;
+  resumenTodayKey = FaroCuotas.monthKeyFromDate(new Date());
+  resumenCards = await FaroCuotas.fetchCards(userId);
+  resumenPurchases = await FaroCuotas.fetchActivePurchases(userId, resumenTodayKey);
+  resumenPurchasesLoaded = true;
+}
+
+async function showResumenCardPicker() {
+  resumenCardRow.style.display = 'block';
+  try {
+    await ensureResumenDataLoaded();
+  } catch (err) {
+    console.error('Error cargando tarjetas/cuotas:', err);
+    resumenCardSelect.innerHTML = '<option value="">No se pudo cargar</option>';
+    return;
+  }
+
+  if (resumenCards.length === 0) {
+    resumenCardSelect.innerHTML = '<option value="">No tenés tarjetas cargadas</option>';
+    resumenDetail.textContent = 'Cargá una tarjeta primero desde el módulo de Tarjetas y Cuotas.';
+    return;
+  }
+
+  resumenCardSelect.innerHTML = resumenCards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  applyResumenCard(resumenCardSelect.value);
+}
+
+function hideResumenCardPicker() {
+  resumenCardRow.style.display = 'none';
+}
+
+function applyResumenCard(cardId) {
+  if (!cardId) return;
+  const card = resumenCards.find(c => c.id === cardId);
+  const { total, detail } = FaroCuotas.computeCardResumenForMonth(resumenPurchases, cardId, resumenTodayKey);
+
+  rawAmount = Math.round(total);
+  updateAmountDisplay();
+  titleInput.value = `Resumen ${card ? card.name : ''}`.trim();
+  notesInput.value = detail.map(d => `${d.description} — cuota ${d.cuotaNumber} de ${d.installmentCount}`).join('\n');
+
+  resumenDetail.textContent = detail.length
+    ? `${detail.length} cuota(s) activa(s) este mes por un total de $${Math.round(total).toLocaleString('es-AR')}.`
+    : 'Esta tarjeta no tiene cuotas activas este mes.';
+}
+
+resumenCardSelect.addEventListener('change', () => applyResumenCard(resumenCardSelect.value));
 
 // Fecha
 dateInput.addEventListener('change', () => {
@@ -214,9 +296,13 @@ async function loadForEdit(id) {
   dateInput.value = data.occurred_on;
   updateDateDisplay(data.occurred_on);
 
-  // Si la categoría del movimiento no está en la lista (categoría vieja o borrada), la agregamos como opción temporal
+  // Si es un "Pagar resumen" guardado, restauramos la categoría especial.
+  // Nota: no queda registrado con qué tarjeta fue, así que el selector de
+  // tarjeta se muestra vacío para elegir de nuevo si hace falta editar el monto.
   const match = categories.find(c => c.name === data.category && c.type === data.type);
-  if (match) {
+  if (data.category === SYSTEM_PAGAR_RESUMEN_LABEL) {
+    selectedCategory = SYSTEM_PAGAR_RESUMEN_ID;
+  } else if (match) {
     selectedCategory = match.id;
   } else if (data.category) {
     const tempId = 'temp-' + data.category;
@@ -224,6 +310,10 @@ async function loadForEdit(id) {
     selectedCategory = tempId;
   }
   renderChips();
+
+  if (selectedCategory === SYSTEM_PAGAR_RESUMEN_ID) {
+    showResumenCardPicker();
+  }
 
   const paymentMatch = paymentMethods.find(pm => pm.name === data.payment_method);
   if (paymentMatch) {
@@ -239,6 +329,9 @@ async function loadForEdit(id) {
 function validate() {
   if (rawAmount <= 0) return 'Ingresá un monto mayor a cero.';
   if (!selectedCategory) return 'Elegí una categoría.';
+  if (selectedCategory === SYSTEM_PAGAR_RESUMEN_ID && !resumenCardSelect.value) {
+    return 'Elegí de qué tarjeta es el resumen.';
+  }
   if (!titleInput.value.trim()) return 'Agregá un título.';
   return null;
 }
@@ -254,13 +347,17 @@ async function save() {
   saveTopBtn.disabled = true;
 
   const categoryObj = categories.find(c => c.id === selectedCategory);
+  const categoryName = selectedCategory === SYSTEM_PAGAR_RESUMEN_ID
+    ? SYSTEM_PAGAR_RESUMEN_LABEL
+    : (categoryObj ? categoryObj.name : null);
   const paymentObj = paymentMethods.find(pm => pm.id === selectedPaymentMethod);
+
   const payload = {
     user_id: userId,
     type: currentType,
     description: titleInput.value.trim(),
     notes: notesInput.value.trim() || null,
-    category: categoryObj ? categoryObj.name : null,
+    category: categoryName,
     payment_method: paymentObj ? paymentObj.name : null,
     amount: rawAmount,
     occurred_on: dateInput.value || todayISO()
