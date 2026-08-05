@@ -41,12 +41,13 @@ const ICONS = {
 function iconSvg(name, size = 20) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICONS[name]}</svg>`;
 }
-// Si el nombre de una categoría empieza con un emoji (ej. "⛽ Combustible"),
-// devuelve ese emoji solo, para usar como ícono circular. Si no, devuelve
-// las primeras 2 letras en mayúscula (comportamiento anterior).
+// Si el nombre de una categoría tiene un emoji (al principio o al final,
+// ej. "⛽ Combustible" u "Ocio 🎯"), devuelve ese emoji solo, para usar
+// como ícono circular. Si no tiene emoji, devuelve las primeras 2 letras
+// en mayúscula (comportamiento anterior).
 function categoryMono(categoryOrDescription) {
   if (!categoryOrDescription) return '??';
-  const match = categoryOrDescription.match(/^\p{Extended_Pictographic}\uFE0F?/u);
+  const match = categoryOrDescription.match(/\p{Extended_Pictographic}\uFE0F?/u);
   if (match) return match[0];
   return categoryOrDescription.slice(0, 2).toUpperCase();
 }
