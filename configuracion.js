@@ -26,11 +26,61 @@ function renderCategoryList(el, list) {
   }
   el.innerHTML = list.map(c => `
     <div class="list-item" data-id="${c.id}">
-      <span class="list-item-label">${escapeHtml(c.name)}</span>
+      <span class="list-item-label" contenteditable="true" spellcheck="false" data-rename-category="${c.id}">${escapeHtml(c.name)}</span>
       <button class="remove-btn" data-remove-category="${c.id}" aria-label="Eliminar">×</button>
     </div>
   `).join('');
 }
+
+async function renameCategory(id, newName, type) {
+  const trimmed = newName.trim();
+  const list = type === 'expense' ? expenseCategories : incomeCategories;
+  const cat = list.find(c => c.id === id);
+  if (!cat) return;
+
+  if (!trimmed || trimmed === cat.name) {
+    // Vacío o sin cambios: no hace falta guardar nada
+    return;
+  }
+
+  const { error } = await supabaseClient.from('categories').update({ name: trimmed }).eq('id', id);
+  if (error) {
+    console.error('Error renombrando categoría:', error);
+    alert('No se pudo guardar el cambio. Probá de nuevo.');
+    return;
+  }
+  cat.name = trimmed;
+}
+
+function findCategoryType(id) {
+  if (expenseCategories.some(c => c.id === id)) return 'expense';
+  if (incomeCategories.some(c => c.id === id)) return 'income';
+  return null;
+}
+
+document.body.addEventListener('focusout', (e) => {
+  const label = e.target.closest('[data-rename-category]');
+  if (!label) return;
+  const id = label.dataset.renameCategory;
+  const type = findCategoryType(id);
+  const list = type === 'expense' ? expenseCategories : incomeCategories;
+  const cat = list.find(c => c.id === id);
+  const newValue = label.textContent.trim();
+  if (!newValue) {
+    label.textContent = cat.name; // no lo dejamos vacío
+    return;
+  }
+  renameCategory(id, newValue, type);
+});
+
+document.body.addEventListener('keydown', (e) => {
+  const label = e.target.closest('[data-rename-category]');
+  if (!label) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    label.blur();
+  }
+});
 
 async function loadCategories() {
   const { data, error } = await supabaseClient
@@ -107,6 +157,136 @@ document.getElementById('add-income-category-btn').addEventListener('click', asy
 document.body.addEventListener('click', (e) => {
   const removeId = e.target.closest('[data-remove-category]');
   if (removeId) removeCategory(removeId.dataset.removeCategory);
+});
+
+/* ---------- Métodos de pago ---------- */
+
+let paymentMethods = [];
+const paymentMethodsListEl = document.getElementById('payment-methods-list');
+
+function renderPaymentMethods() {
+  if (paymentMethods.length === 0) {
+    paymentMethodsListEl.innerHTML = '<div class="empty-row">Todavía no hay métodos de pago.</div>';
+    return;
+  }
+  paymentMethodsListEl.innerHTML = paymentMethods.map(pm => `
+    <div class="list-item" data-id="${pm.id}">
+      <span class="list-item-label" contenteditable="true" spellcheck="false" data-rename-payment="${pm.id}">${escapeHtml(pm.name)}</span>
+      <button class="remove-btn" data-remove-payment="${pm.id}" aria-label="Eliminar">×</button>
+    </div>
+  `).join('');
+}
+
+async function loadPaymentMethods() {
+  const { data, error } = await supabaseClient
+    .from('payment_methods')
+    .select('id, name')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error cargando métodos de pago:', error);
+    return;
+  }
+
+  if (data.length === 0) {
+    const defaults = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'].map(name => ({ user_id: userId, name }));
+    const { data: inserted, error: insertError } = await supabaseClient
+      .from('payment_methods')
+      .insert(defaults)
+      .select('id, name');
+
+    if (insertError) {
+      console.error('Error creando métodos de pago por defecto:', insertError);
+      return;
+    }
+    paymentMethods = inserted;
+  } else {
+    paymentMethods = data;
+  }
+  renderPaymentMethods();
+}
+
+async function addPaymentMethod(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const { data, error } = await supabaseClient
+    .from('payment_methods')
+    .insert({ user_id: userId, name: trimmed })
+    .select('id, name')
+    .single();
+
+  if (error) {
+    console.error('Error agregando método de pago:', error);
+    alert('No se pudo agregar. Probá de nuevo.');
+    return;
+  }
+
+  paymentMethods.push(data);
+  renderPaymentMethods();
+}
+
+async function removePaymentMethod(id) {
+  const confirmed = confirm('¿Eliminar este método de pago?');
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.from('payment_methods').delete().eq('id', id);
+  if (error) {
+    console.error('Error eliminando método de pago:', error);
+    alert('No se pudo eliminar. Probá de nuevo.');
+    return;
+  }
+
+  paymentMethods = paymentMethods.filter(pm => pm.id !== id);
+  renderPaymentMethods();
+}
+
+async function renamePaymentMethod(id, newName) {
+  const trimmed = newName.trim();
+  const pm = paymentMethods.find(p => p.id === id);
+  if (!pm || !trimmed || trimmed === pm.name) return;
+
+  const { error } = await supabaseClient.from('payment_methods').update({ name: trimmed }).eq('id', id);
+  if (error) {
+    console.error('Error renombrando método de pago:', error);
+    alert('No se pudo guardar el cambio. Probá de nuevo.');
+    return;
+  }
+  pm.name = trimmed;
+}
+
+document.getElementById('add-payment-method-btn').addEventListener('click', async () => {
+  const input = document.getElementById('new-payment-method');
+  await addPaymentMethod(input.value);
+  input.value = '';
+});
+
+document.body.addEventListener('click', (e) => {
+  const removeId = e.target.closest('[data-remove-payment]');
+  if (removeId) removePaymentMethod(removeId.dataset.removePayment);
+});
+
+document.body.addEventListener('focusout', (e) => {
+  const label = e.target.closest('[data-rename-payment]');
+  if (!label) return;
+  const id = label.dataset.renamePayment;
+  const pm = paymentMethods.find(p => p.id === id);
+  const newValue = label.textContent.trim();
+  if (!newValue) {
+    label.textContent = pm.name;
+    return;
+  }
+  renamePaymentMethod(id, newValue);
+});
+
+document.body.addEventListener('keydown', (e) => {
+  const label = e.target.closest('[data-rename-payment]');
+  if (!label) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    label.blur();
+  }
 });
 
 /* ---------- Ingresos fijos ---------- */
@@ -210,6 +390,7 @@ async function init() {
   userId = session.user.id;
 
   await loadCategories();
+  await loadPaymentMethods();
   await loadFixedIncomes();
 }
 
