@@ -110,12 +110,13 @@ function renderRecentMovements(recent) {
 
   list.innerHTML = recent.map(tx => {
     const mono = categoryMono(tx.category || tx.description);
+    const color = categoryColor(tx.category || tx.description);
     const isIncome = tx.type === 'income';
     const amountText = (isIncome ? '+' : '-') + formatCurrency(Math.abs(tx.amount));
     const dateLabel = formatRelativeDate(tx.occurred_on);
     return `
       <div class="movement-row">
-        <div class="movement-icon">${mono}</div>
+        <div class="movement-icon" style="background:${hexToRgba(color, 0.18)};color:${color}">${mono}</div>
         <div class="movement-info">
           <div class="movement-name">${escapeHtml(tx.description)}</div>
           <div class="movement-category">${escapeHtml(tx.category || '')}</div>
