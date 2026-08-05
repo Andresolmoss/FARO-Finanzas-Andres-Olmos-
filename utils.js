@@ -34,6 +34,7 @@ const ICONS = {
   home: `<path d="M4 11.5L12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 10V19a1 1 0 0 0 1 1H16.5a1 1 0 0 0 1-1V10" stroke-linecap="round" stroke-linejoin="round"/>`,
   list: `<path d="M4 7H20M4 12H20M4 17H14" stroke-linecap="round"/>`,
   card: `<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5H21"/><circle cx="16.5" cy="14.5" r="1.3" fill="currentColor" stroke="none"/>`,
+  stack: `<rect x="3" y="9" width="15" height="10" rx="2" stroke-linejoin="round"/><rect x="6" y="5" width="15" height="10" rx="2" stroke-linejoin="round"/>`,
   user: `<circle cx="12" cy="8" r="3.2"/><path d="M5 19c0-3.8 3.1-6 7-6s7 2.2 7 6" stroke-linecap="round"/>`,
   plus: `<path d="M12 5V19M5 12H19" stroke-linecap="round"/>`,
   gear: `<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.04-.5.04-1 0-1.5l1.9-1.4-2-3.4-2.2.9a7.9 7.9 0 0 0-1.3-.75L15.4 5h-4l-.4 2.35c-.47.2-.9.45-1.3.75l-2.2-.9-2 3.4L7.4 12c-.04.5-.04 1 0 1.5l-1.9 1.4 2 3.4 2.2-.9c.4.3.83.55 1.3.75L11.4 21h4l.4-2.35c.47-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.4Z" stroke-linecap="round" stroke-linejoin="round"/>`,
