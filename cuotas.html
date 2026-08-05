@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Tarjetas y Cuotas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="shortcut icon" href="/img/favicon.ico">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
+
+<style>
+  .cuotas-shell { max-width: 720px; margin: 0 auto; padding-bottom: 32px; }
+
+  .cuotas-title { color: var(--text-primary); font-size: 24px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 24px; }
+
+  .top-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .back-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: var(--text-primary); font-size: 18px; flex-shrink: 0; }
+
+  .resumen-card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+  .resumen-label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+  .resumen-amount { color: var(--text-primary); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+  .resumen-note { color: var(--text-tertiary); font-size: 12px; margin-top: 8px; }
+
+  .actions-row { display: flex; gap: 12px; margin: 20px 0 8px; }
+  .cbtn { flex: 1; height: 48px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text-primary); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .cbtn-primary { background: var(--blue); color: var(--bg); border: none; }
+
+  .month-label { color: var(--text-tertiary); font-size: 13px; font-weight: 600; letter-spacing: 0.3px; margin: 24px 0 4px; }
+
+  .row-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .row-item:last-child { border-bottom: none; }
+  .row-mono { width: 40px; height: 40px; border-radius: 20px; background: var(--hover); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-secondary); font-size: 11px; font-weight: 600; }
+  .row-main { flex: 1; min-width: 0; }
+  .row-name { color: var(--text-primary); font-size: 15px; font-weight: 500; }
+  .row-sub { color: var(--text-tertiary); font-size: 13px; margin-top: 2px; }
+  .row-amount { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; color: var(--red); }
+
+  .cfield { background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .cfield label { display: block; color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+  .cfield input, .cfield select { width: 100%; background: none; border: none; color: var(--text-primary); font-size: 16px; font-family: inherit; outline: none; }
+  .cfield select option { background: var(--card); }
+  .cfield-check { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .cfield-check label { color: var(--text-primary); font-size: 15px; }
+
+  .empty-state { color: var(--text-tertiary); font-size: 14px; text-align: center; padding: 40px 20px; }
+  .sim-banner { background: var(--hover); border: 1px solid rgba(96,165,250,0.25); border-radius: 16px; padding: 16px; display: flex; gap: 10px; margin-bottom: 20px; color: var(--text-primary); font-size: 14px; line-height: 1.4; }
+  .sim-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .sim-row:last-child { border-bottom: none; }
+  .sim-month { color: var(--text-secondary); font-size: 13px; }
+  .sim-amounts { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .sim-delta { color: var(--blue); font-size: 12px; margin-left: 8px; }
+
+  .error-banner { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3); color: var(--red); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="cuotas-shell">
+
+      <div id="global-error"></div>
+
+      <!-- ==== VISTA: RESUMEN ==== -->
+      <div id="view-resumen" class="view active">
+        <div class="cuotas-title">Tarjetas y Cuotas</div>
+
+        <div class="resumen-card">
+          <div class="resumen-label">Comprometido este mes</div>
+          <div class="resumen-amount" id="resumen-mes">—</div>
+        </div>
+        <div class="resumen-card">
+          <div class="resumen-label">Total pendiente en cuotas</div>
+          <div class="resumen-amount" id="resumen-total">—</div>
+          <div class="resumen-note" id="resumen-nota"></div>
+        </div>
+
+        <div class="actions-row">
+          <button class="cbtn" id="btn-historial">Historial</button>
+          <button class="cbtn" id="btn-simulador">Simulador</button>
+        </div>
+      </div>
+
+      <!-- ==== VISTA: HISTORIAL ==== -->
+      <div id="view-historial" class="view">
+        <div class="top-row">
+          <button class="back-btn" data-back>‹</button>
+          <div class="cuotas-title" style="margin-bottom:0">Historial de cuotas</div>
+        </div>
+        <div id="historial-content"></div>
+      </div>
+
+      <!-- ==== VISTA: SIMULADOR / CARGA DE COMPRA ==== -->
+      <div id="view-simulador" class="view">
+        <div class="top-row">
+          <button class="back-btn" data-back>‹</button>
+          <div class="cuotas-title" style="margin-bottom:0">Compra en cuotas</div>
+        </div>
+        <div class="sim-banner">Cargá los datos de la compra. Con <strong>Simular</strong> ves cómo te afecta antes de decidir — no se guarda nada. Con <strong>Guardar compra</strong> queda registrada de verdad.</div>
+        <div id="sim-form"></div>
+        <div class="actions-row">
+          <button class="cbtn" id="btn-simular">Simular</button>
+          <button class="cbtn cbtn-primary" id="btn-guardar-compra">Guardar compra</button>
+        </div>
+        <div id="sim-result"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="bottom-nav" id="bottom-nav"></div>
+  <button class="fab" id="fab"></button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="utils.js"></script>
+<script src="nav.js"></script>
+<script src="cuotas-engine.js"></script>
+<script src="cuotas-ui.js"></script>
+</body>
+</html>
