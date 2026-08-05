@@ -109,7 +109,7 @@ function renderRecentMovements(recent) {
   empty.style.display = 'none';
 
   list.innerHTML = recent.map(tx => {
-    const mono = (tx.category || tx.description || '??').slice(0, 2).toUpperCase();
+    const mono = categoryMono(tx.category || tx.description);
     const isIncome = tx.type === 'income';
     const amountText = (isIncome ? '+' : '-') + formatCurrency(Math.abs(tx.amount));
     const dateLabel = formatRelativeDate(tx.occurred_on);
