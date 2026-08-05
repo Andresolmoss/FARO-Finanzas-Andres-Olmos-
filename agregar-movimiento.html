@@ -191,6 +191,20 @@
     border: none;
   }
 
+  .field-row select {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+
+  .field-row select option {
+    background: var(--card);
+  }
+
   .spacer {
     flex: 1;
   }
@@ -246,6 +260,13 @@
 
       <div class="chip-row" id="chip-row"></div>
 
+      <!-- Se muestra solo cuando la categoría elegida es "Pagar resumen" -->
+      <div class="field-row" id="resumen-card-row" style="display:none">
+        <div style="color: var(--text-tertiary); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; margin-bottom: 12px">¿DE QUÉ TARJETA ES EL RESUMEN?</div>
+        <select id="resumen-card-select"></select>
+        <div id="resumen-detail" style="color: var(--text-tertiary); font-size: 13px; margin-top: 10px; line-height: 1.5"></div>
+      </div>
+
       <div class="field-row" style="padding-bottom: 4px">
         <div style="color: var(--text-tertiary); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; margin-bottom: 12px">MEDIO DE PAGO</div>
         <div class="chip-row" id="payment-chip-row" style="margin-bottom: 12px"></div>
@@ -281,6 +302,7 @@
 <script src="supabaseClient.js"></script>
 <script src="utils.js"></script>
 <script src="nav.js"></script>
+<script src="cuotas-engine.js"></script>
 <script src="agregar-movimiento.js"></script>
 </body>
 </html>
