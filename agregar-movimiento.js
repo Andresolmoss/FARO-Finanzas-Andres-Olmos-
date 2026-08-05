@@ -3,15 +3,16 @@
    ============================================================ */
 
 const DEFAULT_CATEGORIES = [
-  { name: 'Comida', type: 'expense' },
-  { name: 'Transporte', type: 'expense' },
-  { name: 'Vivienda', type: 'expense' },
-  { name: 'Suscripciones', type: 'expense' },
-  { name: 'Ocio', type: 'expense' },
-  { name: 'Salud', type: 'expense' },
-  { name: 'Otro gasto', type: 'expense' },
-  { name: 'Sueldo', type: 'income' },
-  { name: 'Otro ingreso', type: 'income' }
+  { name: '🍔 Comida', type: 'expense' },
+  { name: '🚗 Transporte', type: 'expense' },
+  { name: '⛽ Combustible', type: 'expense' },
+  { name: '🏠 Vivienda', type: 'expense' },
+  { name: '📺 Suscripciones', type: 'expense' },
+  { name: '🎮 Ocio', type: 'expense' },
+  { name: '🩺 Salud', type: 'expense' },
+  { name: '💸 Otro gasto', type: 'expense' },
+  { name: '💰 Sueldo', type: 'income' },
+  { name: '💵 Otro ingreso', type: 'income' }
 ];
 
 let userId = null;
@@ -23,7 +24,8 @@ let editingId = null; // id del movimiento si estamos editando
 
 const amountInput = document.getElementById('amount-input');
 const chipRow = document.getElementById('chip-row');
-const descriptionInput = document.getElementById('description-input');
+const titleInput = document.getElementById('title-input');
+const notesInput = document.getElementById('notes-input');
 const dateInput = document.getElementById('date-input');
 const dateDisplay = document.getElementById('date-display');
 const saveBtn = document.getElementById('save-btn');
@@ -160,7 +162,8 @@ async function loadForEdit(id) {
   setType(data.type);
   rawAmount = Math.round(Number(data.amount));
   updateAmountDisplay();
-  descriptionInput.value = data.description || '';
+  titleInput.value = data.description || '';
+  notesInput.value = data.notes || '';
   dateInput.value = data.occurred_on;
   updateDateDisplay(data.occurred_on);
 
@@ -179,7 +182,7 @@ async function loadForEdit(id) {
 function validate() {
   if (rawAmount <= 0) return 'Ingresá un monto mayor a cero.';
   if (!selectedCategory) return 'Elegí una categoría.';
-  if (!descriptionInput.value.trim()) return 'Agregá una descripción.';
+  if (!titleInput.value.trim()) return 'Agregá un título.';
   return null;
 }
 
@@ -197,7 +200,8 @@ async function save() {
   const payload = {
     user_id: userId,
     type: currentType,
-    description: descriptionInput.value.trim(),
+    description: titleInput.value.trim(),
+    notes: notesInput.value.trim() || null,
     category: categoryObj ? categoryObj.name : null,
     amount: rawAmount,
     occurred_on: dateInput.value || todayISO()
