@@ -17,7 +17,7 @@ function renderNav(activeKey) {
   if (sidebar) {
     sidebar.innerHTML = `
       <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">${iconSvg('home', 18)}</div>
+        <img src="/img/icon-192.png" alt="Faro" class="sidebar-logo-icon">
         <span>Faro</span>
       </div>
       <div class="sidebar-nav">
