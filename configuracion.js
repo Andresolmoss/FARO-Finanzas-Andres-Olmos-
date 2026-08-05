@@ -148,8 +148,24 @@ document.getElementById('add-expense-category-btn').addEventListener('click', as
   input.value = '';
 });
 
+document.getElementById('new-expense-category').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = e.target;
+  await addCategory('expense', input.value);
+  input.value = '';
+});
+
 document.getElementById('add-income-category-btn').addEventListener('click', async () => {
   const input = document.getElementById('new-income-category');
+  await addCategory('income', input.value);
+  input.value = '';
+});
+
+document.getElementById('new-income-category').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = e.target;
   await addCategory('income', input.value);
   input.value = '';
 });
@@ -258,6 +274,14 @@ async function renamePaymentMethod(id, newName) {
 
 document.getElementById('add-payment-method-btn').addEventListener('click', async () => {
   const input = document.getElementById('new-payment-method');
+  await addPaymentMethod(input.value);
+  input.value = '';
+});
+
+document.getElementById('new-payment-method').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = e.target;
   await addPaymentMethod(input.value);
   input.value = '';
 });
@@ -371,6 +395,19 @@ document.getElementById('add-fixed-income-btn').addEventListener('click', async 
   nameInput.value = '';
   amountInput.value = '';
 });
+
+async function submitFixedIncomeFromKeyboard(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const nameInput = document.getElementById('new-fixed-income-name');
+  const amountInput = document.getElementById('new-fixed-income-amount');
+  await addFixedIncome(nameInput.value, amountInput.value);
+  nameInput.value = '';
+  amountInput.value = '';
+}
+
+document.getElementById('new-fixed-income-name').addEventListener('keydown', submitFixedIncomeFromKeyboard);
+document.getElementById('new-fixed-income-amount').addEventListener('keydown', submitFixedIncomeFromKeyboard);
 
 document.getElementById('new-fixed-income-amount').addEventListener('input', (e) => {
   const digits = e.target.value.replace(/\D/g, '');
