@@ -69,6 +69,14 @@
   .list-item-label {
     color: var(--text-primary);
     font-size: 15px;
+    outline: none;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+  }
+
+  .list-item-label:focus {
+    background: var(--hover);
   }
 
   .list-item-amount {
@@ -171,6 +179,17 @@
           <div class="add-row">
             <input type="text" id="new-income-category" placeholder="Nueva categoría de ingreso">
             <button class="add-btn" id="add-income-category-btn">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-header">MÉTODOS DE PAGO</div>
+        <div class="settings-card">
+          <div id="payment-methods-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-payment-method" placeholder="Nuevo método de pago">
+            <button class="add-btn" id="add-payment-method-btn">Agregar</button>
           </div>
         </div>
       </div>
