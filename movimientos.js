@@ -61,7 +61,7 @@ function render() {
 }
 
 function rowHtml(tx) {
-  const mono = (tx.category || tx.description || '??').slice(0, 2).toUpperCase();
+  const mono = categoryMono(tx.category || tx.description);
   const isIncome = tx.type === 'income';
   const amountText = (isIncome ? '+' : '-') + formatCurrency(Math.abs(tx.amount));
 
