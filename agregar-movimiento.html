@@ -144,6 +144,23 @@
     color: var(--text-tertiary);
   }
 
+  .field-row textarea {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    resize: vertical;
+    min-height: 72px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .field-row textarea::placeholder {
+    color: var(--text-tertiary);
+  }
+
   .field-row.date {
     position: relative;
     display: flex;
@@ -229,7 +246,11 @@
       <div class="chip-row" id="chip-row"></div>
 
       <div class="field-row">
-        <input type="text" id="description-input" placeholder="Descripción">
+        <input type="text" id="title-input" placeholder="Título (ej. Quiosco de Edgardo)">
+      </div>
+
+      <div class="field-row">
+        <textarea id="notes-input" placeholder="Detalle (opcional) — un ítem por línea"></textarea>
       </div>
 
       <div class="field-row date" id="date-row">
