@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Configuración</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
+
+<style>
+  .content-max { max-width: 560px; }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .page-subtitle {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .settings-group {
+    margin-bottom: 32px;
+  }
+
+  .settings-group-header {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px 4px;
+  }
+
+  .settings-card {
+    background: var(--card);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .list-item:last-child {
+    border-bottom: none;
+  }
+
+  .list-item-label {
+    color: var(--text-primary);
+    font-size: 15px;
+  }
+
+  .list-item-amount {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-right: 12px;
+  }
+
+  .list-item-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+  }
+
+  .remove-btn:active {
+    color: var(--red);
+  }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .add-row input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .add-row input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .add-row input.amount-field {
+    flex: 0 0 110px;
+    text-align: right;
+  }
+
+  .add-btn {
+    background: none;
+    border: none;
+    color: var(--blue);
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .add-btn:disabled {
+    color: var(--text-tertiary);
+  }
+
+  .empty-row {
+    padding: 16px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="content-max" style="margin: 0 auto">
+      <div class="page-title">Configuración</div>
+      <div class="page-subtitle">Categorías e ingresos fijos</div>
+
+      <div class="settings-group">
+        <div class="settings-group-header">CATEGORÍAS DE GASTO</div>
+        <div class="settings-card">
+          <div id="expense-categories-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-expense-category" placeholder="Nueva categoría de gasto">
+            <button class="add-btn" id="add-expense-category-btn">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-header">CATEGORÍAS DE INGRESO</div>
+        <div class="settings-card">
+          <div id="income-categories-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-income-category" placeholder="Nueva categoría de ingreso">
+            <button class="add-btn" id="add-income-category-btn">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-header">INGRESOS FIJOS</div>
+        <div class="settings-card">
+          <div id="fixed-incomes-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-fixed-income-name" placeholder="Nombre (ej. Alquiler cobrado)">
+            <input type="text" id="new-fixed-income-amount" class="amount-field" placeholder="$0" inputmode="numeric">
+            <button class="add-btn" id="add-fixed-income-btn">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="utils.js"></script>
+<script src="nav.js"></script>
+<script src="configuracion.js"></script>
+</body>
+</html>
