@@ -4,16 +4,15 @@
 const NAV_ITEMS = [
   { key: 'dashboard', icon: 'home', label: 'Inicio', href: 'index.html' },
   { key: 'movimientos', icon: 'list', label: 'Movimientos', href: 'movimientos.html' },
+  { key: 'cuotas', icon: 'stack', label: 'Cuotas', href: 'cuotas.html' },
   { key: 'fondos', icon: 'card', label: 'Fondos', href: 'fondos.html' },
   { key: 'configuracion', icon: 'gear', label: 'Configuración', href: 'configuracion.html' },
   { key: 'perfil', icon: 'user', label: 'Perfil', href: 'perfil.html' }
 ];
-
 function renderNav(activeKey) {
   const sidebar = document.getElementById('sidebar');
   const bottomNav = document.getElementById('bottom-nav');
   const items = NAV_ITEMS.map(item => ({ ...item, isActive: item.key === activeKey }));
-
   if (sidebar) {
     sidebar.innerHTML = `
       <div class="sidebar-logo">
@@ -41,7 +40,6 @@ function renderNav(activeKey) {
     });
     fillSidebarUser();
   }
-
   if (bottomNav) {
     bottomNav.innerHTML = items.map(item => `
       <a class="bottom-nav-item ${item.isActive ? 'active' : ''}" href="${item.href}" aria-label="${item.key}">
@@ -50,7 +48,6 @@ function renderNav(activeKey) {
     `).join('');
   }
 }
-
 async function fillSidebarUser() {
   if (typeof getSession !== 'function') return;
   const session = await getSession();
@@ -61,7 +58,6 @@ async function fillSidebarUser() {
   if (nameEl) nameEl.textContent = email;
   if (avatarEl) avatarEl.textContent = email.charAt(0).toUpperCase() || '·';
 }
-
 function initFab() {
   const fab = document.getElementById('fab');
   if (!fab) return;
