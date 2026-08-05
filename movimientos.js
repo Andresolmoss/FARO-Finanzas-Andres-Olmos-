@@ -67,14 +67,12 @@ function rowHtml(tx) {
 
   return `
     <div class="movement-row" data-id="${tx.id}">
-      <div style="display:flex;align-items:center;gap:14px;padding:14px 0">
-        <div class="movement-icon">${mono}</div>
-        <div class="movement-info">
-          <div class="movement-name">${escapeHtml(tx.description)}</div>
-          <div class="movement-category">${escapeHtml(tx.category || '')}</div>
-        </div>
-        <div class="movement-amount ${isIncome ? 'income' : 'expense'} tabular" style="flex-shrink:0">${amountText}</div>
+      <div class="movement-icon">${mono}</div>
+      <div class="movement-info">
+        <div class="movement-name">${escapeHtml(tx.description)}</div>
+        <div class="movement-category">${escapeHtml(tx.category || '')}</div>
       </div>
+      <div class="movement-amount ${isIncome ? 'income' : 'expense'} tabular" style="flex-shrink:0">${amountText}</div>
     </div>
   `;
 }
