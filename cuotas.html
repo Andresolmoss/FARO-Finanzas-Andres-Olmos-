@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Faro — Tarjetas y Cuotas</title>
+<title>Faro — Cuotas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,51 +21,229 @@
 <meta name="theme-color" content="#0B0D12">
 
 <style>
-  .cuotas-shell { max-width: 720px; margin: 0 auto; padding-bottom: 32px; }
+  .content-max { max-width: 720px; }
 
-  .cuotas-title { color: var(--text-primary); font-size: 24px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 24px; }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 12px;
+  }
 
-  .top-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  .back-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: var(--text-primary); font-size: 18px; flex-shrink: 0; }
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
 
-  .resumen-card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 16px; }
-  .resumen-label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
-  .resumen-amount { color: var(--text-primary); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
-  .resumen-note { color: var(--text-tertiary); font-size: 12px; margin-top: 8px; }
+  .load-btn {
+    background: var(--card);
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
 
-  .actions-row { display: flex; gap: 12px; margin: 20px 0 8px; }
-  .cbtn { flex: 1; height: 48px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text-primary); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
-  .cbtn-primary { background: var(--blue); color: var(--bg); border: none; }
+  .load-btn:hover { background: var(--hover); }
 
-  .month-label { color: var(--text-tertiary); font-size: 13px; font-weight: 600; letter-spacing: 0.3px; margin: 24px 0 4px; }
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
 
-  .row-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
-  .row-item:last-child { border-bottom: none; }
-  .row-mono { width: 40px; height: 40px; border-radius: 20px; background: var(--hover); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-secondary); font-size: 11px; font-weight: 600; }
-  .row-main { flex: 1; min-width: 0; }
-  .row-name { color: var(--text-primary); font-size: 15px; font-weight: 500; }
-  .row-sub { color: var(--text-tertiary); font-size: 13px; margin-top: 2px; }
-  .row-amount { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; color: var(--red); }
+  .chip {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+  }
 
-  .cfield { background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
-  .cfield label { display: block; color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
-  .cfield input, .cfield select { width: 100%; background: none; border: none; color: var(--text-primary); font-size: 16px; font-family: inherit; outline: none; }
-  .cfield select option { background: var(--card); }
-  .cfield-check { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
-  .cfield-check label { color: var(--text-primary); font-size: 15px; }
+  .chip.active {
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--blue);
+    border-color: rgba(96, 165, 250, 0.3);
+  }
 
-  .empty-state { color: var(--text-tertiary); font-size: 14px; text-align: center; padding: 40px 20px; }
-  .sim-banner { background: var(--hover); border: 1px solid rgba(96,165,250,0.25); border-radius: 16px; padding: 16px; display: flex; gap: 10px; margin-bottom: 20px; color: var(--text-primary); font-size: 14px; line-height: 1.4; }
-  .sim-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .sim-row:last-child { border-bottom: none; }
-  .sim-month { color: var(--text-secondary); font-size: 13px; }
-  .sim-amounts { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
-  .sim-delta { color: var(--blue); font-size: 12px; margin-left: 8px; }
+  .cuota-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: var(--card);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
 
-  .error-banner { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3); color: var(--red); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+  .cuota-card-left { min-width: 0; }
+  .cuota-card-name { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+  .cuota-card-meta { font-size: 13px; color: var(--text-tertiary); margin-top: 3px; }
+  .cuota-card-right { text-align: right; flex-shrink: 0; }
+  .cuota-card-amount { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .cuota-card-end { font-size: 12px; color: var(--text-tertiary); margin-top: 3px; }
 
-  .view { display: none; }
-  .view.active { display: block; }
+  .history-link {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: 20px;
+  }
+
+  /* Modal de carga */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title { font-size: 17px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: var(--text-tertiary); font-size: 20px; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .prompt-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    font-family: ui-monospace, monospace;
+  }
+
+  .paste-textarea {
+    width: 100%;
+    min-height: 160px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
+    padding: 12px;
+    margin-bottom: 16px;
+    resize: vertical;
+  }
+
+  .primary-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: var(--blue);
+    color: var(--bg);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .secondary-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--hover);
+    color: var(--text-primary);
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 10px;
+  }
+
+  .review-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+    margin: 20px 0 10px;
+  }
+
+  .review-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .review-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .review-item-desc { flex: 1; font-size: 14px; font-weight: 500; }
+  .review-item-amount { font-size: 14px; font-weight: 600; }
+  .review-item-meta { font-size: 12px; color: var(--text-tertiary); margin: 4px 0 10px 26px; }
+
+  .review-item-selects {
+    display: flex;
+    gap: 8px;
+    margin-left: 26px;
+  }
+  .review-item-selects select {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .warning-box {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--yellow);
+    margin-bottom: 10px;
+  }
+
+  .error-box {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
 </style>
 </head>
 <body>
@@ -74,59 +252,58 @@
   <nav class="sidebar" id="sidebar"></nav>
 
   <main class="main">
-    <div class="cuotas-shell">
-
-      <div id="global-error"></div>
-
-      <!-- ==== VISTA: RESUMEN ==== -->
-      <div id="view-resumen" class="view active">
-        <div class="cuotas-title">Tarjetas y Cuotas</div>
-
-        <div class="resumen-card">
-          <div class="resumen-label">Comprometido este mes</div>
-          <div class="resumen-amount" id="resumen-mes">—</div>
-        </div>
-        <div class="resumen-card">
-          <div class="resumen-label">Total pendiente en cuotas</div>
-          <div class="resumen-amount" id="resumen-total">—</div>
-          <div class="resumen-note" id="resumen-nota"></div>
-        </div>
-
-        <div class="actions-row">
-          <button class="cbtn" id="btn-historial">Historial</button>
-          <button class="cbtn" id="btn-simulador">Simulador</button>
-        </div>
+    <div class="content-max" style="margin: 0 auto">
+      <div class="page-header">
+        <div class="page-title">Cuotas</div>
+        <button class="load-btn" id="open-load-btn">Cargar resumen</button>
       </div>
 
-      <!-- ==== VISTA: HISTORIAL ==== -->
-      <div id="view-historial" class="view">
-        <div class="top-row">
-          <button class="back-btn" data-back>‹</button>
-          <div class="cuotas-title" style="margin-bottom:0">Historial de cuotas</div>
-        </div>
-        <div id="historial-content"></div>
-      </div>
+      <div class="stat-row" id="stat-row"></div>
 
-      <!-- ==== VISTA: SIMULADOR / CARGA DE COMPRA ==== -->
-      <div id="view-simulador" class="view">
-        <div class="top-row">
-          <button class="back-btn" data-back>‹</button>
-          <div class="cuotas-title" style="margin-bottom:0">Compra en cuotas</div>
-        </div>
-        <div class="sim-banner">Cargá los datos de la compra. Con <strong>Simular</strong> ves cómo te afecta antes de decidir — no se guarda nada. Con <strong>Guardar compra</strong> queda registrada de verdad.</div>
-        <div id="sim-form"></div>
-        <div class="actions-row">
-          <button class="cbtn" id="btn-simular">Simular</button>
-          <button class="cbtn cbtn-primary" id="btn-guardar-compra">Guardar compra</button>
-        </div>
-        <div id="sim-result"></div>
-      </div>
+      <div class="chip-row" id="chip-row"></div>
 
+      <div id="cuotas-list"></div>
+
+      <a href="#" class="history-link" id="history-link">Ver historial de cuotas finalizadas</a>
+      <div id="history-list" style="display:none; margin-top:12px"></div>
     </div>
   </main>
 
-  <div class="bottom-nav" id="bottom-nav"></div>
-  <button class="fab" id="fab"></button>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<div class="modal-overlay" id="load-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Cargar resumen con IA</div>
+      <button class="modal-close" id="close-modal-btn" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="step active" id="step-prompt">
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 12px">
+        Copiá este prompt y pegalo junto con tu resumen (imagen, PDF o texto) en Claude, ChatGPT o Gemini.
+      </p>
+      <div class="prompt-box" id="prompt-text"></div>
+      <button class="primary-btn" id="copy-prompt-btn">Copiar prompt</button>
+      <button class="secondary-btn" id="go-paste-btn">Ya tengo la respuesta de la IA</button>
+    </div>
+
+    <div class="step" id="step-paste">
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 12px">
+        Pegá acá el JSON que te devolvió la IA.
+      </p>
+      <div class="error-box" id="paste-error" style="display:none"></div>
+      <textarea class="paste-textarea" id="paste-textarea" placeholder="{ ... }"></textarea>
+      <button class="primary-btn" id="process-json-btn">Procesar</button>
+      <button class="secondary-btn" id="back-to-prompt-btn">Volver</button>
+    </div>
+
+    <div class="step" id="step-review">
+      <div id="review-content"></div>
+      <button class="primary-btn" id="save-review-btn">Guardar cuotas seleccionadas</button>
+      <button class="secondary-btn" id="close-review-btn">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -134,6 +311,6 @@
 <script src="utils.js"></script>
 <script src="nav.js"></script>
 <script src="cuotas-engine.js"></script>
-<script src="cuotas-ui.js"></script>
+<script src="cuotas.js"></script>
 </body>
 </html>
