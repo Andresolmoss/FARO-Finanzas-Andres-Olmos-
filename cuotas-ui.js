@@ -5,7 +5,7 @@
    ============================================================ */
 
 (function () {
-  const state = { userId: null, cards: [], purchases: [], todayKey: null };
+  const state = { userId: null, cards: [], categories: [], purchases: [], todayKey: null };
 
   function fmt(n) {
     return '$' + Math.round(n).toLocaleString('es-AR');
@@ -67,7 +67,7 @@
     `).join('');
   }
 
-  // ---------- Simulador / carga de compra ----------
+  // ---------- Simulador / carga manual de compra ----------
 
   function renderSimForm() {
     const el = document.getElementById('sim-form');
@@ -182,6 +182,173 @@
     }
   }
 
+  // ---------- Carga con IA (nuevo) ----------
+
+  let iaReviewNuevas = [];
+  let iaReviewDiscrepancias = [];
+  let iaMesResumen = null;
+
+  function showSubstep(id) {
+    document.querySelectorAll('#view-cargar-ia .substep').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function openCargarIa() {
+    document.getElementById('ia-prompt-text').textContent = FaroCuotas.buildAiPrompt(state.purchases, state.todayKey);
+    document.getElementById('ia-paste-textarea').value = '';
+    showSubstep('ia-step-prompt');
+    showView('view-cargar-ia');
+  }
+
+  function cardSelectOptionsHtml() {
+    return '<option value="">Elegir tarjeta…</option>' +
+      state.cards.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') +
+      '<option value="__new__">+ Agregar tarjeta nueva</option>';
+  }
+
+  function categorySelectOptionsHtml() {
+    if (!state.categories.length) return '<option value="">No hay categorías creadas</option>';
+    return '<option value="">Elegir categoría…</option>' +
+      state.categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+  }
+
+  function processIaJson() {
+    const raw = document.getElementById('ia-paste-textarea').value;
+    let parsed;
+    try {
+      parsed = FaroCuotas.parseAiResponse(raw);
+    } catch (err) {
+      showError(err.message);
+      return;
+    }
+
+    iaMesResumen = parsed.mes_resumen;
+    iaReviewNuevas = [];
+    iaReviewDiscrepancias = [];
+
+    parsed.compras_en_cuotas.forEach(candidate => {
+      const match = FaroCuotas.findExistingMatch(candidate, state.purchases);
+      if (!match) {
+        iaReviewNuevas.push(candidate);
+        return;
+      }
+      const { expected, actual, mismatch } = FaroCuotas.computeDiscrepancy(match, candidate, parsed.mes_resumen);
+      if (mismatch) iaReviewDiscrepancias.push({ candidate, existing: match, expected, actual });
+      // si coincide exacto, no se muestra nada — ya está al día
+    });
+
+    renderIaReview();
+    showSubstep('ia-step-review');
+  }
+
+  function renderIaReview() {
+    const el = document.getElementById('ia-review-content');
+    let html = '';
+
+    if (iaReviewDiscrepancias.length > 0) {
+      html += iaReviewDiscrepancias.map(d => `
+        <div class="warning-banner">
+          <strong>${escapeHtml(d.candidate.descripcion)}</strong>: esperábamos cuota ${d.expected} de ${d.existing.installment_count}, el resumen dice ${d.actual}. No se modifica nada solo — revisalo cuando puedas.
+        </div>
+      `).join('');
+    }
+
+    if (iaReviewNuevas.length === 0) {
+      html += '<div class="empty-state">No encontré compras en cuotas nuevas para cargar.</div>';
+    } else {
+      html += iaReviewNuevas.map((c, i) => `
+        <div class="ia-review-item" data-idx="${i}">
+          <div class="ia-review-header">
+            <input type="checkbox" class="ia-review-check" checked>
+            <div class="ia-review-desc">${escapeHtml(c.descripcion)}</div>
+            <div class="ia-review-amount">${fmt(c.monto_cuota)}</div>
+          </div>
+          <div class="ia-review-meta">cuota ${c.cuota_actual} de ${c.cuotas_totales}${c.con_interes ? ' · con interés' : ' · sin interés'}</div>
+          <div class="ia-review-selects">
+            <select class="ia-review-card" data-idx="${i}">${cardSelectOptionsHtml()}</select>
+            <select class="ia-review-category" data-idx="${i}">${categorySelectOptionsHtml()}</select>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    el.innerHTML = html;
+
+    el.querySelectorAll('.ia-review-card').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        if (sel.value !== '__new__') return;
+        const name = window.prompt('Nombre de la tarjeta nueva (ej: "ICBC Mastercard"):');
+        if (!name || !name.trim()) { sel.value = ''; return; }
+        try {
+          const card = await FaroCuotas.createCard(state.userId, name.trim());
+          state.cards.push(card);
+          el.querySelectorAll('.ia-review-card').forEach(s => {
+            const keep = s === sel ? card.id : s.value;
+            s.innerHTML = cardSelectOptionsHtml();
+            s.value = keep;
+          });
+        } catch (err) {
+          showError('No se pudo crear la tarjeta: ' + err.message);
+          sel.value = '';
+        }
+      });
+    });
+  }
+
+  async function saveIaReview() {
+    const items = document.querySelectorAll('#ia-review-content .ia-review-item');
+    const toSave = [];
+
+    for (const item of items) {
+      const idx = Number(item.dataset.idx);
+      const checkbox = item.querySelector('.ia-review-check');
+      if (!checkbox.checked) continue;
+
+      const candidate = iaReviewNuevas[idx];
+      const cardSel = item.querySelector('.ia-review-card');
+      const catSel = item.querySelector('.ia-review-category');
+
+      if (!cardSel.value || cardSel.value === '__new__') {
+        showError(`Elegí una tarjeta para "${candidate.descripcion}" antes de guardar.`);
+        return;
+      }
+      if (!catSel.value) {
+        showError(`Elegí una categoría para "${candidate.descripcion}" antes de guardar.`);
+        return;
+      }
+
+      const key = candidate.fecha_compra
+        ? candidate.fecha_compra.slice(0, 7)
+        : FaroCuotas.addMonthsToKey(iaMesResumen, -(Math.max(1, candidate.cuota_actual) - 1));
+
+      toSave.push({
+        cardId: cardSel.value,
+        description: candidate.descripcion,
+        totalAmount: Number(candidate.monto_cuota) * Number(candidate.cuotas_totales),
+        installmentCount: Number(candidate.cuotas_totales),
+        hasInterest: !!candidate.con_interes,
+        firstInstallmentDate: `${key}-01`,
+        category: catSel.value
+      });
+    }
+
+    if (toSave.length === 0) {
+      showError('No hay ninguna cuota tildada para guardar.');
+      return;
+    }
+
+    try {
+      for (const purchase of toSave) {
+        await FaroCuotas.createPurchase(state.userId, purchase);
+      }
+      state.purchases = await FaroCuotas.fetchActivePurchases(state.userId, state.todayKey);
+      renderResumen();
+      showView('view-resumen');
+    } catch (err) {
+      showError('No se pudieron guardar algunas cuotas: ' + err.message);
+    }
+  }
+
   // ---------- Init ----------
 
   async function init() {
@@ -192,6 +359,7 @@
 
       state.todayKey = FaroCuotas.monthKeyFromDate(new Date());
       state.cards = await FaroCuotas.fetchCards(state.userId);
+      state.categories = await FaroCuotas.fetchExpenseCategories(state.userId);
       state.purchases = await FaroCuotas.fetchActivePurchases(state.userId, state.todayKey);
 
       renderResumen();
@@ -209,6 +377,26 @@
       });
       document.getElementById('btn-simular').addEventListener('click', onSimular);
       document.getElementById('btn-guardar-compra').addEventListener('click', onGuardarCompra);
+
+      // Carga con IA
+      document.getElementById('btn-cargar-ia').addEventListener('click', openCargarIa);
+      document.getElementById('btn-copy-prompt').addEventListener('click', async () => {
+        const text = document.getElementById('ia-prompt-text').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          const btn = document.getElementById('btn-copy-prompt');
+          const original = btn.textContent;
+          btn.textContent = 'Copiado ✓';
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        } catch (e) {
+          showError('No se pudo copiar automático. Seleccioná el texto y copialo a mano.');
+        }
+      });
+      document.getElementById('btn-go-paste').addEventListener('click', () => showSubstep('ia-step-paste'));
+      document.getElementById('btn-back-to-ia-prompt').addEventListener('click', () => showSubstep('ia-step-prompt'));
+      document.getElementById('btn-process-ia').addEventListener('click', processIaJson);
+      document.getElementById('btn-cancel-ia').addEventListener('click', () => showView('view-resumen'));
+      document.getElementById('btn-save-ia').addEventListener('click', saveIaReview);
 
     } catch (err) {
       showError('Error cargando el módulo de cuotas: ' + err.message);
