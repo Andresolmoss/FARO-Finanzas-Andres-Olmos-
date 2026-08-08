@@ -2,7 +2,7 @@
 // Faro — Motor de cálculo del módulo Tarjetas y Cuotas
 //
 // Este archivo NO toca el DOM. Son funciones puras + acceso a
-// Supabase, pensadas para ser usadas tanto desde cuotas.js como
+// Supabase, pensadas para ser usadas tanto desde cuotas-ui.js como
 // (más adelante) desde agregar-movimiento.js para la categoría
 // especial "Pagar resumen".
 //
@@ -176,6 +176,115 @@ const FaroCuotas = (() => {
     return rows;
   }
 
+  // ---------- Carga con IA (nuevo) ----------
+
+  // Normaliza texto para comparar comercios (minúsculas, sin espacios extra)
+  function normalizeText(str) {
+    return String(str || '').toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  // Arma el prompt completo para copiar y pegar en cualquier IA gratuita.
+  // Si hay compras activas cargadas, agrega el bloque de auditoría de
+  // discrepancias (compara lo que dice el resumen nuevo contra lo esperado).
+  function buildAiPrompt(existingPurchases, todayKey) {
+    let prompt = `Sos un asistente que extrae información de resúmenes de tarjeta de crédito argentinos, en pasos.
+
+PASO 1: Te voy a pegar el texto o una imagen de mi resumen de tarjeta de crédito. Buscá ÚNICAMENTE las compras que se están pagando en cuotas — las reconocés por un patrón "N/M" junto al monto (ej: "04/09" = cuota 4 de 9). Ignorá las compras de pago único.
+
+Por cada compra en cuotas que encuentres, anotá internamente: descripción, cuota actual, cuotas totales, monto de la cuota, moneda, fecha de compra (si está clara).
+`;
+
+    if (existingPurchases && existingPurchases.length > 0) {
+      const lineas = existingPurchases
+        .map(p => {
+          const n = installmentNumberForMonth(p, todayKey);
+          return n !== null ? `- ${p.description}: cuota ${n} de ${p.installment_count}, según el mes actual` : null;
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      prompt += `
+PASO 2: Estos son los datos que ya tengo cargados en mi sistema sobre compras en cuotas activas (para que los uses de referencia):
+${lineas}
+
+Cuando encuentres en el nuevo resumen una compra que coincida con una de esta lista (mismo comercio, mismas cuotas totales), fijate si la cuota que muestra el resumen coincide con la que figura arriba. Si no coincide, avisame ANTES de seguir, indicando cuál es la compra y cuál es la diferencia.
+
+PASO 3: Preguntame cuáles de las compras en cuotas detectadas son CON interés y cuáles SIN interés. Por ejemplo: "Encontré estas compras en cuotas: 1) Grupo Marquez (9 cuotas)... ¿cuáles tienen interés? Podés responder 'todas sin interés', 'todas con interés', o aclarar una por una."
+
+PASO 4: `;
+    } else {
+      prompt += `
+PASO 2: Antes de darme el resultado final, mostrame la lista de compras en cuotas que detectaste (solo descripción y cuotas totales) y preguntame cuáles son CON interés y cuáles SIN interés. Por ejemplo: "Encontré estas compras en cuotas: 1) Grupo Marquez (9 cuotas)... ¿cuáles tienen interés? Podés responder 'todas sin interés', 'todas con interés', o aclarar una por una."
+
+PASO 3: `;
+    }
+
+    prompt += `Cuando te responda, generá el resultado final. Devolveme ÚNICAMENTE un JSON válido, sin texto antes ni después, sin explicaciones, sin bloques de código markdown, empezando directo con { y terminando con }, con esta estructura exacta:
+
+{
+  "tarjeta_detectada": "",
+  "mes_resumen": "AAAA-MM",
+  "vencimiento_resumen": "AAAA-MM-DD",
+  "compras_en_cuotas": [
+    {
+      "descripcion": "",
+      "cuota_actual": 0,
+      "cuotas_totales": 0,
+      "monto_cuota": 0,
+      "moneda": "ARS",
+      "fecha_compra": null,
+      "con_interes": false
+    }
+  ]
+}
+
+Los montos van como número JSON estándar (punto decimal, sin separador de miles — ejemplo: 15722.11, no "15.722,11").
+
+Acá está mi resumen:
+[PEGÁ ACÁ EL TEXTO O ADJUNTÁ LA IMAGEN/PDF DE TU RESUMEN]`;
+
+    return prompt;
+  }
+
+  // Parsea el JSON que el usuario pega desde la IA. Tira un Error con
+  // mensaje entendible si algo no viene bien formado.
+  function parseAiResponse(rawText) {
+    let cleaned = String(rawText || '').trim();
+    cleaned = cleaned.replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      throw new Error('Eso que pegaste no es un JSON válido. Revisá que hayas copiado la respuesta completa de la IA, sin texto extra.');
+    }
+
+    if (!parsed || !Array.isArray(parsed.compras_en_cuotas)) {
+      throw new Error('El JSON no tiene el formato esperado (falta "compras_en_cuotas").');
+    }
+
+    return parsed;
+  }
+
+  // Busca si una compra detectada por la IA ya existe en lo que tenemos
+  // cargado (mismo comercio + mismas cuotas totales). Devuelve el
+  // registro existente o null.
+  function findExistingMatch(candidate, existingPurchases) {
+    const candDesc = normalizeText(candidate.descripcion);
+    return existingPurchases.find(p =>
+      normalizeText(p.description) === candDesc &&
+      Number(p.installment_count) === Number(candidate.cuotas_totales)
+    ) || null;
+  }
+
+  // Compara la cuota que dice la IA contra la que Faro esperaría a esta
+  // altura (según el mes del resumen). Devuelve { expected, actual, mismatch }
+  function computeDiscrepancy(existing, candidate, mesResumenKey) {
+    const expected = installmentNumberForMonth(existing, mesResumenKey);
+    const actual = Number(candidate.cuota_actual);
+    return { expected, actual, mismatch: expected !== actual };
+  }
+
   // ---------- Acceso a datos (Supabase) ----------
 
   async function getUserId() {
@@ -203,6 +312,18 @@ const FaroCuotas = (() => {
     return data;
   }
 
+  // Categorías de gasto, para asignarle una a cada cuota cargada por IA.
+  async function fetchExpenseCategories(userId) {
+    const { data, error } = await sb
+      .from('categories')
+      .select('id, name')
+      .eq('user_id', userId)
+      .eq('type', 'expense')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
   // Trae las compras activas (que todavía tienen al menos una cuota
   // pendiente desde este mes) con el nombre de tarjeta ya resuelto.
   async function fetchActivePurchases(userId, todayKey) {
@@ -226,18 +347,21 @@ const FaroCuotas = (() => {
       .filter(p => compareMonthKeys(lastMonthKeyForPurchase(p), todayKey) >= 0);
   }
 
-  async function createPurchase(userId, { cardId, description, totalAmount, installmentCount, hasInterest, firstInstallmentDate }) {
+  async function createPurchase(userId, { cardId, description, totalAmount, installmentCount, hasInterest, firstInstallmentDate, category }) {
+    const insertObj = {
+      user_id: userId,
+      card_id: cardId,
+      description,
+      total_amount: totalAmount,
+      installment_count: installmentCount,
+      has_interest: hasInterest,
+      first_installment_date: firstInstallmentDate
+    };
+    if (category) insertObj.category = category;
+
     const { data, error } = await sb
       .from('installment_purchases')
-      .insert({
-        user_id: userId,
-        card_id: cardId,
-        description,
-        total_amount: totalAmount,
-        installment_count: installmentCount,
-        has_interest: hasInterest,
-        first_installment_date: firstInstallmentDate
-      })
+      .insert(insertObj)
       .select()
       .single();
     if (error) throw error;
@@ -257,9 +381,14 @@ const FaroCuotas = (() => {
     buildHistorial,
     computeCardResumenForMonth,
     simulate,
+    buildAiPrompt,
+    parseAiResponse,
+    findExistingMatch,
+    computeDiscrepancy,
     getUserId,
     fetchCards,
     createCard,
+    fetchExpenseCategories,
     fetchActivePurchases,
     createPurchase
   };
