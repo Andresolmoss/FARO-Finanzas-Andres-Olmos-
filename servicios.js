@@ -13,6 +13,10 @@ let editingServiceId = null;   // servicio en edición (form-overlay), null = al
 let selectedPayMethodId = null;
 let rawPayAmount = 0;
 let rawFormAmount = 0;
+let viewPeriod = null;         // período (YYYY-MM) que se está mostrando en la lista
+let statusFilter = 'all';      // 'all' | 'pendiente' | 'pagado'
+
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 function todayISO() {
   const d = new Date();
@@ -30,12 +34,28 @@ function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
-function dueDateForCurrentPeriod(dueDay) {
+function dueDateForPeriod(dueDay, periodKey) {
   if (!dueDay) return null;
-  const d = new Date();
-  const dim = daysInMonth(d.getFullYear(), d.getMonth() + 1);
+  const [year, month] = periodKey.split('-').map(Number);
+  const dim = daysInMonth(year, month);
   const day = Math.min(dueDay, dim);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function lastDayOfPeriod(periodKey) {
+  const [year, month] = periodKey.split('-').map(Number);
+  return `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth(year, month)).padStart(2, '0')}`;
+}
+
+function shiftPeriod(periodKey, delta) {
+  const [year, month] = periodKey.split('-').map(Number);
+  const d = new Date(year, month - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function periodLabel(periodKey) {
+  const [year, month] = periodKey.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
 function escapeHtml(str) {
@@ -75,8 +95,7 @@ async function loadServices() {
   services = data || [];
 }
 
-async function loadPaymentsThisPeriod() {
-  const period = currentPeriodKey();
+async function loadPaymentsForPeriod(period) {
   const { data, error } = await supabaseClient
     .from('service_payments')
     .select('id, service_id, amount_paid, paid_date, status')
@@ -125,33 +144,56 @@ async function loadPaymentMethods() {
 
 // ---------- Indicadores ----------
 
+function renderMonthNav() {
+  document.getElementById('month-label').textContent = periodLabel(viewPeriod);
+  document.getElementById('month-next-btn').disabled = viewPeriod === currentPeriodKey();
+}
+
 function renderIndicators() {
-  const comprometido = services.reduce((sum, s) => sum + (Number(s.estimated_amount) || 0), 0);
+  const isCurrent = viewPeriod === currentPeriodKey();
+
+  const comprometido = services.reduce((sum, s) => {
+    const payment = paymentsThisPeriod[s.id];
+    return sum + (payment ? Number(payment.amount_paid) : (Number(s.estimated_amount) || 0));
+  }, 0);
   document.getElementById('ind-comprometido').textContent = formatCurrency(comprometido);
+  document.getElementById('ind-label-1').textContent = isCurrent ? 'Comprometido este mes' : 'Comprometido';
 
   const pendientes = services.filter(s => !paymentsThisPeriod[s.id]);
   document.getElementById('ind-pendientes').textContent = pendientes.length;
 
-  const today = new Date().getDate();
-  let proximo = null;
-  let proximoDias = Infinity;
-  pendientes.forEach(s => {
-    if (!s.due_day) return;
-    const dias = s.due_day >= today ? s.due_day - today : (s.due_day + 30 - today);
-    if (dias < proximoDias) {
-      proximoDias = dias;
-      proximo = s;
-    }
-  });
-
   const nombreEl = document.getElementById('ind-proximo-nombre');
   const fechaEl = document.getElementById('ind-proximo-fecha');
-  if (proximo) {
-    nombreEl.textContent = proximo.name;
-    fechaEl.textContent = `Vence día ${proximo.due_day}`;
+  const labelEl = document.getElementById('ind-label-3');
+
+  if (isCurrent) {
+    labelEl.textContent = 'Próximo vencimiento';
+    const today = new Date().getDate();
+    let proximo = null;
+    let proximoDias = Infinity;
+    pendientes.forEach(s => {
+      if (!s.due_day) return;
+      const dias = s.due_day >= today ? s.due_day - today : (s.due_day + 30 - today);
+      if (dias < proximoDias) {
+        proximoDias = dias;
+        proximo = s;
+      }
+    });
+    if (proximo) {
+      nombreEl.textContent = proximo.name;
+      fechaEl.textContent = `Vence día ${proximo.due_day}`;
+    } else {
+      nombreEl.textContent = '—';
+      fechaEl.textContent = '';
+    }
   } else {
-    nombreEl.textContent = '—';
-    fechaEl.textContent = '';
+    labelEl.textContent = 'Pagado ese mes';
+    const totalPagado = services.reduce((sum, s) => {
+      const payment = paymentsThisPeriod[s.id];
+      return sum + (payment ? Number(payment.amount_paid) : 0);
+    }, 0);
+    nombreEl.textContent = formatCurrency(totalPagado);
+    fechaEl.textContent = `${services.length - pendientes.length} de ${services.length} pagados`;
   }
 }
 
@@ -161,14 +203,23 @@ function renderServicesList() {
   const container = document.getElementById('services-list');
   const emptyState = document.getElementById('empty-state');
 
-  if (services.length === 0) {
+  const filtered = services.filter(s => {
+    if (statusFilter === 'all') return true;
+    const isPagado = !!paymentsThisPeriod[s.id];
+    return statusFilter === 'pagado' ? isPagado : !isPagado;
+  });
+
+  if (filtered.length === 0) {
     container.innerHTML = '';
     emptyState.style.display = 'block';
+    emptyState.textContent = services.length === 0
+      ? 'Todavía no cargaste servicios. Usá el botón + para agregar el primero.'
+      : 'No hay servicios que coincidan con este filtro.';
     return;
   }
   emptyState.style.display = 'none';
 
-  container.innerHTML = services.map(s => {
+  container.innerHTML = filtered.map(s => {
     const payment = paymentsThisPeriod[s.id];
     const isPagado = !!payment;
     const mono = categoryMono(s.categories ? s.categories.name : s.name);
@@ -203,16 +254,25 @@ function openOptionsSheet(serviceId) {
   const s = services.find(x => x.id === serviceId);
   if (!s) return;
   const payment = paymentsThisPeriod[serviceId];
+  const isCurrent = viewPeriod === currentPeriodKey();
 
   document.getElementById('options-title').textContent = s.name;
   document.getElementById('options-sub').textContent = payment
-    ? `Ya marcado como pagado este mes (${formatCurrency(Number(payment.amount_paid))})`
+    ? `Pagado en ${periodLabel(viewPeriod)} (${formatCurrency(Number(payment.amount_paid))})`
     : (s.estimated_amount ? `Estimado: ${formatCurrency(Number(s.estimated_amount))}` : 'Sin monto estimado todavía');
 
   const btnPagar = document.getElementById('btn-marcar-pagado');
-  btnPagar.textContent = payment ? 'Ya está pagado este mes' : 'Marcar como pagado';
-  btnPagar.disabled = !!payment;
-  btnPagar.style.opacity = payment ? '0.5' : '1';
+  if (payment) {
+    btnPagar.textContent = 'Ya está pagado';
+    btnPagar.disabled = true;
+  } else if (!isCurrent) {
+    btnPagar.textContent = 'Solo se puede marcar el mes actual';
+    btnPagar.disabled = true;
+  } else {
+    btnPagar.textContent = 'Marcar como pagado';
+    btnPagar.disabled = false;
+  }
+  btnPagar.style.opacity = btnPagar.disabled ? '0.5' : '1';
 
   document.getElementById('options-overlay').classList.add('open');
 }
@@ -284,7 +344,7 @@ function openPaySheet(serviceId) {
   const s = services.find(x => x.id === serviceId);
   if (!s) return;
 
-  document.getElementById('pay-title').textContent = `Marcar "${s.name}" como pagado`;
+  document.getElementById('pay-service-name').textContent = `Marcar "${s.name}" como pagado`;
   document.getElementById('pay-error').textContent = '';
   rawPayAmount = s.estimated_amount ? Math.round(Number(s.estimated_amount)) : 0;
   updatePayAmountDisplay();
@@ -316,7 +376,7 @@ document.getElementById('btn-confirmar-pago').addEventListener('click', async ()
 
   const paymentMethodObj = paymentMethods.find(pm => pm.id === selectedPayMethodId);
   const categoryName = s.categories ? s.categories.name : null;
-  const period = currentPeriodKey();
+  const period = viewPeriod;
 
   // 1) Movimiento en Movimientos
   const { error: txError } = await supabaseClient.from('transactions').insert({
@@ -343,7 +403,7 @@ document.getElementById('btn-confirmar-pago').addEventListener('click', async ()
     service_id: s.id,
     period: period,
     amount_paid: amount,
-    due_date: dueDateForCurrentPeriod(s.due_day),
+    due_date: dueDateForPeriod(s.due_day, period),
     paid_date: paidDate,
     status: 'pagado'
   }, { onConflict: 'service_id,period' });
@@ -441,12 +501,37 @@ document.getElementById('btn-guardar-servicio').addEventListener('click', async 
   await refreshAll();
 });
 
+document.getElementById('month-prev-btn').addEventListener('click', async () => {
+  viewPeriod = shiftPeriod(viewPeriod, -1);
+  await refreshList();
+});
+
+document.getElementById('month-next-btn').addEventListener('click', async () => {
+  if (viewPeriod === currentPeriodKey()) return;
+  viewPeriod = shiftPeriod(viewPeriod, 1);
+  await refreshList();
+});
+
+document.getElementById('status-filter-row').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  statusFilter = chip.dataset.filter;
+  document.querySelectorAll('#status-filter-row .chip').forEach(c => c.classList.toggle('selected', c === chip));
+  renderServicesList();
+});
+
 // ---------- Init ----------
 
-async function refreshAll() {
-  await Promise.all([loadServices(), loadPaymentsThisPeriod()]);
+async function refreshList() {
+  await loadPaymentsForPeriod(viewPeriod);
+  renderMonthNav();
   renderIndicators();
   renderServicesList();
+}
+
+async function refreshAll() {
+  await loadServices();
+  await refreshList();
 }
 
 async function init() {
@@ -454,6 +539,7 @@ async function init() {
   if (!session) return;
   userId = session.user.id;
 
+  viewPeriod = currentPeriodKey();
   document.getElementById('add-service-btn').innerHTML = iconSvg('plus', 16);
 
   await Promise.all([loadExpenseCategories(), loadPaymentMethods()]);
