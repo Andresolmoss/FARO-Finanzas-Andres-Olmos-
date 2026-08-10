@@ -40,7 +40,8 @@ const ICONS = {
   gear: `<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.04-.5.04-1 0-1.5l1.9-1.4-2-3.4-2.2.9a7.9 7.9 0 0 0-1.3-.75L15.4 5h-4l-.4 2.35c-.47.2-.9.45-1.3.75l-2.2-.9-2 3.4L7.4 12c-.04.5-.04 1 0 1.5l-1.9 1.4 2 3.4 2.2-.9c.4.3.83.55 1.3.75L11.4 21h4l.4-2.35c.47-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.4Z" stroke-linecap="round" stroke-linejoin="round"/>`,
   cash: `<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.3c0-1 .9-1.5 2-1.5s2 .55 2 1.4-.9 1.2-2 1.4c-1.1.2-2 .55-2 1.4s.9 1.5 2 1.5 2-.45 2-1.4" stroke-linecap="round"/>`,
   transfer: `<path d="M7 7h10l-3-3M17 17H7l3 3" stroke-linecap="round" stroke-linejoin="round"/>`,
-  chevron: `<path d="M1 1l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
+  chevron: `<path d="M1 1l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  bolt: `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/>`
 };
 function iconSvg(name, size = 20) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICONS[name]}</svg>`;
