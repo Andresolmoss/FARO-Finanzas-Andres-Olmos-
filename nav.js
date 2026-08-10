@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { key: 'movimientos', icon: 'list', label: 'Movimientos', href: 'movimientos.html' },
   { key: 'cuotas', icon: 'stack', label: 'Cuotas', href: 'cuotas.html' },
   { key: 'fondos', icon: 'card', label: 'Fondos', href: 'fondos.html' },
+  { key: 'servicios', icon: 'bolt', label: 'Servicios', href: 'servicios.html' },
   { key: 'configuracion', icon: 'gear', label: 'Configuración', href: 'configuracion.html' },
   { key: 'perfil', icon: 'user', label: 'Perfil', href: 'perfil.html' }
 ];
