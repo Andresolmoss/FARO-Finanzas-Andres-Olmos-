@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Servicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="shortcut icon" href="/img/favicon.ico">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
+
+<style>
+  .servicios-shell { max-width: 720px; margin: 0 auto; padding-bottom: 32px; }
+
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .page-title { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: var(--text-primary); flex-shrink: 0; }
+
+  .indicator-row { display: flex; gap: 12px; margin-bottom: 28px; }
+  .indicator-card { flex: 1; background: var(--card); border-radius: 18px; padding: 16px; min-width: 0; }
+  .indicator-label { color: var(--text-secondary); font-size: 12px; }
+  .indicator-value { color: var(--text-primary); font-size: 19px; font-weight: 600; margin-top: 6px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .indicator-sub { color: var(--text-tertiary); font-size: 11px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .service-row { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 20px; padding: 16px; margin-bottom: 12px; cursor: pointer; }
+  .service-row:active { background: var(--hover); }
+  .service-icon { width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+  .service-main { flex: 1; min-width: 0; }
+  .service-name { color: var(--text-primary); font-size: 16px; font-weight: 600; }
+  .service-sub { color: var(--text-tertiary); font-size: 13px; margin-top: 2px; }
+  .service-right { text-align: right; flex-shrink: 0; }
+  .service-amount { color: var(--text-primary); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .service-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
+  .service-badge.pendiente { color: var(--blue); background: rgba(96,165,250,0.15); }
+  .service-badge.pagado { color: var(--green); background: rgba(52,211,153,0.15); }
+
+  .empty-state { color: var(--text-tertiary); font-size: 14px; text-align: center; padding: 40px 20px; }
+
+  /* Bottom sheet: opciones del servicio */
+  .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: flex-end; justify-content: center; }
+  .edit-overlay.open { display: flex; }
+  .edit-panel { width: 100%; max-width: 480px; background: var(--card); border-radius: 24px 24px 0 0; padding: 24px 20px 32px; max-height: 85vh; overflow-y: auto; }
+  .edit-panel-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .edit-panel-amount { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; }
+  .edit-action { width: 100%; height: 52px; border-radius: 14px; background: var(--hover); border: none; color: var(--text-primary); font-size: 15px; font-weight: 500; font-family: inherit; margin-bottom: 12px; }
+  .edit-action.primary { background: var(--blue); color: var(--bg); font-weight: 600; }
+  .edit-action.delete { color: var(--red); }
+  .edit-action.cancel { background: none; color: var(--text-secondary); margin-bottom: 0; }
+
+  .cfield { background: var(--hover); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .cfield label { display: block; color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+  .cfield input, .cfield select { width: 100%; background: none; border: none; color: var(--text-primary); font-size: 16px; font-family: inherit; outline: none; }
+  .cfield select option { background: var(--card); }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip { padding: 8px 14px; border-radius: 18px; background: var(--hover); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; font-family: inherit; cursor: pointer; }
+  .chip.selected { background: var(--card); border-color: var(--blue); color: var(--text-primary); }
+
+  .form-error { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="servicios-shell">
+
+      <div class="page-header">
+        <div class="page-title">Servicios</div>
+        <button class="icon-btn" id="add-service-btn" aria-label="Agregar servicio"></button>
+      </div>
+
+      <div class="indicator-row">
+        <div class="indicator-card">
+          <div class="indicator-label">Comprometido este mes</div>
+          <div class="indicator-value" id="ind-comprometido">—</div>
+        </div>
+        <div class="indicator-card">
+          <div class="indicator-label">Pendientes</div>
+          <div class="indicator-value" id="ind-pendientes">—</div>
+        </div>
+        <div class="indicator-card">
+          <div class="indicator-label">Próximo vencimiento</div>
+          <div class="indicator-value" id="ind-proximo-nombre">—</div>
+          <div class="indicator-sub" id="ind-proximo-fecha"></div>
+        </div>
+      </div>
+
+      <div id="services-list"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none">
+        Todavía no cargaste servicios. Usá el botón + para agregar el primero.
+      </div>
+
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<!-- Bottom sheet: opciones del servicio (pagar / editar / eliminar) -->
+<div class="edit-overlay" id="options-overlay">
+  <div class="edit-panel">
+    <div class="edit-panel-title" id="options-title"></div>
+    <div class="edit-panel-amount" id="options-sub"></div>
+    <button class="edit-action primary" id="btn-marcar-pagado">Marcar como pagado</button>
+    <button class="edit-action" id="btn-editar-servicio">Editar servicio</button>
+    <button class="edit-action delete" id="btn-eliminar-servicio">Eliminar</button>
+    <button class="edit-action cancel" id="btn-cancelar-opciones">Cancelar</button>
+  </div>
+</div>
+
+<!-- Bottom sheet: marcar como pagado -->
+<div class="edit-overlay" id="pay-overlay">
+  <div class="edit-panel">
+    <div class="edit-panel-title" id="pay-title">Marcar como pagado</div>
+    <div class="form-error" id="pay-error"></div>
+
+    <div class="cfield">
+      <label>Monto pagado</label>
+      <input type="text" id="pay-amount-input" inputmode="numeric">
+    </div>
+    <div class="cfield">
+      <label>Fecha de pago</label>
+      <input type="date" id="pay-date-input">
+    </div>
+    <div class="cfield">
+      <label>Método de pago</label>
+      <div class="chip-row" id="pay-method-chip-row"></div>
+    </div>
+
+    <button class="edit-action primary" id="btn-confirmar-pago">Confirmar pago</button>
+    <button class="edit-action cancel" id="btn-cancelar-pago">Cancelar</button>
+  </div>
+</div>
+
+<!-- Bottom sheet: crear / editar servicio -->
+<div class="edit-overlay" id="form-overlay">
+  <div class="edit-panel">
+    <div class="edit-panel-title" id="form-title">Nuevo servicio</div>
+    <div class="form-error" id="form-error"></div>
+
+    <div class="cfield">
+      <label>Nombre</label>
+      <input type="text" id="form-name-input" placeholder="Ej: Luz">
+    </div>
+    <div class="cfield">
+      <label>Proveedor (opcional)</label>
+      <input type="text" id="form-provider-input" placeholder="Ej: EDET">
+    </div>
+    <div class="cfield">
+      <label>Categoría</label>
+      <select id="form-category-select"></select>
+    </div>
+    <div class="cfield">
+      <label>Día de vencimiento aproximado (opcional)</label>
+      <input type="number" id="form-dueday-input" min="1" max="31" placeholder="Ej: 28">
+    </div>
+    <div class="cfield">
+      <label>Monto estimado</label>
+      <input type="text" id="form-amount-input" inputmode="numeric" placeholder="$0">
+    </div>
+
+    <button class="edit-action primary" id="btn-guardar-servicio">Guardar</button>
+    <button class="edit-action cancel" id="btn-cancelar-form">Cancelar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="utils.js"></script>
+<script src="nav.js"></script>
+<script src="servicios.js"></script>
+</body>
+</html>
