@@ -11,6 +11,8 @@ let paymentMethods = [];     // [{id, name}]
 let currentServiceId = null;   // servicio seleccionado para el bottom sheet de opciones
 let editingServiceId = null;   // servicio en edición (form-overlay), null = alta nueva
 let selectedPayMethodId = null;
+let rawPayAmount = 0;
+let rawFormAmount = 0;
 
 function todayISO() {
   const d = new Date();
@@ -40,6 +42,19 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// Formatea un input de monto en vivo con separador de miles (es-AR),
+// dejando solo dígitos guardados internamente.
+function attachThousandsFormatting(inputEl) {
+  inputEl.addEventListener('input', () => {
+    const digits = inputEl.value.replace(/\D/g, '');
+    inputEl.value = digits ? Number(digits).toLocaleString('es-AR') : '';
+  });
+}
+
+function formatThousands(n) {
+  return n ? Number(n).toLocaleString('es-AR') : '';
 }
 
 // ---------- Carga de datos ----------
@@ -247,6 +262,23 @@ document.getElementById('pay-method-chip-row').addEventListener('click', (e) => 
   renderPayMethodChips();
 });
 
+document.getElementById('pay-amount-input').addEventListener('input', (e) => {
+  const digits = e.target.value.replace(/\D/g, '');
+  rawPayAmount = digits ? parseInt(digits, 10) : 0;
+  updatePayAmountDisplay();
+});
+
+document.getElementById('pay-amount-input').addEventListener('focus', () => {
+  requestAnimationFrame(() => {
+    const input = document.getElementById('pay-amount-input');
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+});
+
+function updatePayAmountDisplay() {
+  document.getElementById('pay-amount-input').value = '$' + rawPayAmount.toLocaleString('es-AR');
+}
+
 function openPaySheet(serviceId) {
   currentServiceId = serviceId;
   const s = services.find(x => x.id === serviceId);
@@ -254,7 +286,8 @@ function openPaySheet(serviceId) {
 
   document.getElementById('pay-title').textContent = `Marcar "${s.name}" como pagado`;
   document.getElementById('pay-error').textContent = '';
-  document.getElementById('pay-amount-input').value = s.estimated_amount ? Math.round(Number(s.estimated_amount)) : '';
+  rawPayAmount = s.estimated_amount ? Math.round(Number(s.estimated_amount)) : 0;
+  updatePayAmountDisplay();
   document.getElementById('pay-date-input').value = todayISO();
   selectedPayMethodId = paymentMethods.length ? paymentMethods[0].id : null;
   renderPayMethodChips();
@@ -271,8 +304,7 @@ document.getElementById('btn-confirmar-pago').addEventListener('click', async ()
   const s = services.find(x => x.id === currentServiceId);
   if (!s) return;
 
-  const amountRaw = document.getElementById('pay-amount-input').value.replace(/\D/g, '');
-  const amount = amountRaw ? parseInt(amountRaw, 10) : 0;
+  const amount = rawPayAmount;
   const paidDate = document.getElementById('pay-date-input').value || todayISO();
 
   if (amount <= 0) { errorEl.textContent = 'Ingresá un monto mayor a cero.'; return; }
@@ -340,6 +372,11 @@ function renderCategorySelect(selectedId) {
   `).join('');
 }
 
+document.getElementById('form-amount-input').addEventListener('input', (e) => {
+  const digits = e.target.value.replace(/\D/g, '');
+  e.target.value = digits ? '$' + parseInt(digits, 10).toLocaleString('es-AR') : '';
+});
+
 function openFormSheet(serviceId) {
   editingServiceId = serviceId || null;
   const s = serviceId ? services.find(x => x.id === serviceId) : null;
@@ -349,7 +386,7 @@ function openFormSheet(serviceId) {
   document.getElementById('form-name-input').value = s ? s.name : '';
   document.getElementById('form-provider-input').value = s && s.provider ? s.provider : '';
   document.getElementById('form-dueday-input').value = s && s.due_day ? s.due_day : '';
-  document.getElementById('form-amount-input').value = s && s.estimated_amount ? Math.round(Number(s.estimated_amount)) : '';
+  document.getElementById('form-amount-input').value = s && s.estimated_amount ? '$' + Math.round(Number(s.estimated_amount)).toLocaleString('es-AR') : '';
   renderCategorySelect(s ? s.category_id : (expenseCategories[0] ? expenseCategories[0].id : null));
 
   document.getElementById('form-overlay').classList.add('open');
