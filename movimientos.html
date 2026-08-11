@@ -76,6 +76,43 @@
     max-width: 960px;
   }
 
+  /* Card de resumen: sombra + glow difuminado, mismo lenguaje que el Dashboard */
+  .movements-summary {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  .movements-summary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(96, 165, 250, 0.14) 0%, rgba(96, 165, 250, 0.05) 40%, rgba(96, 165, 250, 0) 75%);
+    pointer-events: none;
+    opacity: 0;
+    animation: summaryGlowIn 0.6s var(--ease) forwards;
+  }
+
+  @keyframes summaryGlowIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .movements-summary::before {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
+  .movements-summary > * {
+    position: relative;
+  }
+
   /* Panel de edición / borrado (sheet inferior simple) */
   .edit-overlay {
     display: none;
