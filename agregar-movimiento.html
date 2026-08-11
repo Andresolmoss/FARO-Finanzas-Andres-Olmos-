@@ -57,6 +57,43 @@
     letter-spacing: 0.4px;
   }
 
+  /* Glow difuminado detrás de tipo + monto, mismo lenguaje que Dashboard/Movimientos */
+  .amount-hero {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .amount-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+    height: 220px;
+    background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(96, 165, 250, 0.16) 0%, rgba(96, 165, 250, 0.06) 40%, rgba(96, 165, 250, 0) 75%);
+    pointer-events: none;
+    opacity: 0;
+    animation: amountGlowIn 0.6s var(--ease) forwards;
+  }
+
+  @keyframes amountGlowIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .amount-hero::before {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
+  .amount-hero > * {
+    position: relative;
+  }
+
   .type-tabs {
     display: flex;
     justify-content: center;
@@ -282,14 +319,16 @@
         <button class="form-topbar-action save" id="save-top-btn">Guardar</button>
       </div>
 
-      <div class="type-tabs">
-        <button class="type-tab expense active" data-type="expense">Gasto</button>
-        <button class="type-tab income" data-type="income">Ingreso</button>
-      </div>
+      <div class="amount-hero">
+        <div class="type-tabs">
+          <button class="type-tab expense active" data-type="expense">Gasto</button>
+          <button class="type-tab income" data-type="income">Ingreso</button>
+        </div>
 
-      <div class="amount-row">
-        <span class="amount-arrow expense" id="amount-arrow"></span>
-        <input class="amount-display expense" id="amount-input" inputmode="numeric" autocomplete="off" value="$0" size="8">
+        <div class="amount-row">
+          <span class="amount-arrow expense" id="amount-arrow"></span>
+          <input class="amount-display expense" id="amount-input" inputmode="numeric" autocomplete="off" value="$0" size="8">
+        </div>
       </div>
 
       <div class="chip-row" id="chip-row"></div>
