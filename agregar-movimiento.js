@@ -20,6 +20,7 @@ const DEFAULT_CATEGORIES = [
 // selector de tarjeta para calcular el monto del resumen solo.
 const SYSTEM_PAGAR_RESUMEN_ID = 'SYSTEM_PAGAR_RESUMEN';
 const SYSTEM_PAGAR_RESUMEN_LABEL = '💳 Pagar resumen';
+const SYSTEM_PAGAR_RESUMEN_COLOR = '#60A5FA'; // usa el azul de info, no es una categoría real
 
 let userId = null;
 let currentType = 'expense';
@@ -37,6 +38,7 @@ let resumenPurchasesLoaded = false;
 let resumenTodayKey = null;
 
 const amountInput = document.getElementById('amount-input');
+const amountArrow = document.getElementById('amount-arrow');
 const chipRow = document.getElementById('chip-row');
 const paymentChipRow = document.getElementById('payment-chip-row');
 const titleInput = document.getElementById('title-input');
@@ -51,6 +53,9 @@ const formError = document.getElementById('form-error');
 const resumenCardRow = document.getElementById('resumen-card-row');
 const resumenCardSelect = document.getElementById('resumen-card-select');
 const resumenDetail = document.getElementById('resumen-detail');
+
+const ARROW_INCOME_SVG = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7L7 17"/><path d="M7 9V17H15"/></svg>';
+const ARROW_EXPENSE_SVG = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M9 7H17V15"/></svg>';
 
 function todayISO() {
   const d = new Date();
@@ -67,6 +72,12 @@ function updateAmountDisplay() {
   saveBtn.textContent = `Guardar $${rawAmount.toLocaleString('es-AR')}`;
   saveBtn.classList.remove('expense', 'income');
   saveBtn.classList.add(currentType);
+
+  if (amountArrow) {
+    amountArrow.classList.remove('expense', 'income');
+    amountArrow.classList.add(currentType);
+    amountArrow.innerHTML = currentType === 'income' ? ARROW_INCOME_SVG : ARROW_EXPENSE_SVG;
+  }
 }
 
 amountInput.addEventListener('input', () => {
@@ -99,14 +110,27 @@ document.querySelectorAll('.type-tab').forEach(tab => {
 
 function renderChips() {
   const list = categories.filter(c => c.type === currentType);
-  let html = list.map(c => `
-    <button type="button" class="chip ${c.id === selectedCategory ? 'selected' : ''}" data-id="${c.id}">${escapeHtml(c.name)}</button>
-  `).join('');
+  let html = list.map(c => {
+    const isSelected = c.id === selectedCategory;
+    const color = categoryColor(c.name);
+    const style = isSelected
+      ? `background:${hexToRgba(color, 0.18)};border-color:${hexToRgba(color, 0.4)};color:${color}`
+      : '';
+    return `
+      <button type="button" class="chip ${isSelected ? 'selected' : ''}" data-id="${c.id}" style="${style}">
+        <span class="category-dot" style="background:${color}"></span>${escapeHtml(c.name)}
+      </button>
+    `;
+  }).join('');
 
   // "Pagar resumen" solo tiene sentido para gastos
   if (currentType === 'expense') {
+    const isSelected = selectedCategory === SYSTEM_PAGAR_RESUMEN_ID;
+    const style = isSelected
+      ? `background:${hexToRgba(SYSTEM_PAGAR_RESUMEN_COLOR, 0.18)};border-color:${hexToRgba(SYSTEM_PAGAR_RESUMEN_COLOR, 0.4)};color:${SYSTEM_PAGAR_RESUMEN_COLOR}`
+      : '';
     html += `
-      <button type="button" class="chip ${selectedCategory === SYSTEM_PAGAR_RESUMEN_ID ? 'selected' : ''}" data-id="${SYSTEM_PAGAR_RESUMEN_ID}">${SYSTEM_PAGAR_RESUMEN_LABEL}</button>
+      <button type="button" class="chip ${isSelected ? 'selected' : ''}" data-id="${SYSTEM_PAGAR_RESUMEN_ID}" style="${style}">${SYSTEM_PAGAR_RESUMEN_LABEL}</button>
     `;
   }
 
@@ -133,9 +157,15 @@ function escapeHtml(str) {
 }
 
 function renderPaymentChips() {
-  paymentChipRow.innerHTML = paymentMethods.map(pm => `
-    <button type="button" class="chip ${pm.id === selectedPaymentMethod ? 'selected' : ''}" data-payment-id="${pm.id}">${escapeHtml(pm.name)}</button>
-  `).join('');
+  paymentChipRow.innerHTML = paymentMethods.map(pm => {
+    const isSelected = pm.id === selectedPaymentMethod;
+    const iconName = paymentIconName(pm.name) || 'card';
+    return `
+      <button type="button" class="chip ${isSelected ? 'selected' : ''}" data-payment-id="${pm.id}">
+        ${iconSvg(iconName, 14)}${escapeHtml(pm.name)}
+      </button>
+    `;
+  }).join('');
 }
 
 paymentChipRow.addEventListener('click', (e) => {
@@ -198,7 +228,7 @@ async function showResumenCardPicker() {
 
   if (resumenCards.length === 0) {
     resumenCardSelect.innerHTML = '<option value="">No tenés tarjetas cargadas</option>';
-    resumenDetail.textContent = 'Cargá una tarjeta primero desde el módulo de Tarjetas y Cuotas.';
+    resumenDetail.innerHTML = `<div style="color: var(--text-tertiary); font-size: 13px; line-height: 1.5">Cargá una tarjeta primero desde el módulo de Tarjetas y Cuotas.</div>`;
     return;
   }
 
@@ -220,9 +250,29 @@ function applyResumenCard(cardId) {
   titleInput.value = `Resumen ${card ? card.name : ''}`.trim();
   notesInput.value = detail.map(d => `${d.description} — cuota ${d.cuotaNumber} de ${d.installmentCount}`).join('\n');
 
-  resumenDetail.textContent = detail.length
-    ? `${detail.length} cuota(s) activa(s) este mes por un total de $${Math.round(total).toLocaleString('es-AR')}.`
-    : 'Esta tarjeta no tiene cuotas activas este mes.';
+  const cardIcon = iconSvg('card', 20);
+  if (detail.length) {
+    const cuotaWord = detail.length === 1 ? 'cuota activa' : 'cuotas activas';
+    resumenDetail.innerHTML = `
+      <div class="summary-count-card">
+        <div class="summary-count-icon">${cardIcon}</div>
+        <div>
+          <div class="summary-count-value">$${Math.round(total).toLocaleString('es-AR')}</div>
+          <div class="summary-count-hint">${detail.length} ${cuotaWord} este mes</div>
+        </div>
+      </div>
+    `;
+  } else {
+    resumenDetail.innerHTML = `
+      <div class="summary-count-card">
+        <div class="summary-count-icon">${cardIcon}</div>
+        <div>
+          <div class="summary-count-value">Sin cuotas</div>
+          <div class="summary-count-hint">Esta tarjeta no tiene cuotas activas este mes</div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 resumenCardSelect.addEventListener('change', () => applyResumenCard(resumenCardSelect.value));
