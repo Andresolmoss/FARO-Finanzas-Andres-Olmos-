@@ -44,12 +44,12 @@ function renderBalanceAndStats(transactions, now) {
     return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
   }, 0);
 
-  const isThisMonth = (dateStr) => {
+  const isInMonth = (dateStr, year, month) => {
     const d = new Date(dateStr);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return d.getMonth() === month && d.getFullYear() === year;
   };
 
-  const monthTx = transactions.filter(tx => isThisMonth(tx.occurred_on));
+  const monthTx = transactions.filter(tx => isInMonth(tx.occurred_on, now.getFullYear(), now.getMonth()));
   const income = monthTx.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
   const expense = monthTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
 
@@ -57,6 +57,23 @@ function renderBalanceAndStats(transactions, now) {
   document.getElementById('stat-income').textContent = formatCurrency(income);
   document.getElementById('stat-expense').textContent = formatCurrency(expense);
   document.getElementById('stat-savings').textContent = formatCurrency(income - expense);
+
+  // Delta de gastos vs. el mes anterior
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthTx = transactions.filter(tx => isInMonth(tx.occurred_on, prevDate.getFullYear(), prevDate.getMonth()));
+  const prevExpense = prevMonthTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
+
+  const deltaEl = document.getElementById('stat-expense-delta');
+  if (deltaEl) {
+    if (prevExpense > 0) {
+      const monthNamesShort = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const pct = Math.round(((expense - prevExpense) / prevExpense) * 100);
+      const arrow = pct >= 0 ? '↑' : '↓';
+      deltaEl.textContent = `${arrow}${Math.abs(pct)}% vs ${monthNamesShort[prevDate.getMonth()]}`;
+    } else {
+      deltaEl.textContent = '';
+    }
+  }
 }
 
 function renderChart(transactions) {
