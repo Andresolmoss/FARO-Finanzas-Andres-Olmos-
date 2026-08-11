@@ -264,10 +264,49 @@ button {
   margin-bottom: 28px;
 }
 
+/* Panel único que fusiona balance + gráfico (sin borde entre ambos) */
+.balance-panel {
+  position: relative;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.balance-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(96, 165, 250, 0.20) 0%, rgba(96, 165, 250, 0.08) 40%, rgba(96, 165, 250, 0) 75%);
+  pointer-events: none;
+  opacity: 0;
+  animation: balanceGlowIn 0.6s var(--ease) forwards;
+}
+
+@keyframes balanceGlowIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .balance-glow {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.balance-header {
+  position: relative;
+  padding: 32px 20px 0;
+}
+
 .balance-label {
   color: var(--text-tertiary);
   font-size: 13px;
   margin-bottom: 6px;
+  text-align: center;
 }
 
 .balance-amount {
@@ -275,21 +314,41 @@ button {
   font-size: 44px;
   font-weight: 600;
   letter-spacing: -1px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .stat-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
   flex: 1;
-  background: var(--card);
+  background: rgba(19, 22, 29, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg);
   padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
+
+.stat-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.stat-card-top svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.stat-icon-income { color: var(--green); }
+.stat-icon-expense { color: var(--red); }
+.stat-icon-savings { color: var(--text-secondary); }
 
 .stat-card .label {
   color: var(--text-secondary);
@@ -299,21 +358,23 @@ button {
 .stat-card .value {
   font-size: 18px;
   font-weight: 600;
-  margin-top: 6px;
 }
 
 .stat-card .value.income { color: var(--green); }
 .stat-card .value.expense { color: var(--red); }
 .stat-card .value.savings { color: var(--text-primary); }
 
-.chart-card {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  padding: 24px 20px;
-  margin-bottom: 28px;
+.stat-delta {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  margin-top: 3px;
 }
 
-.chart-card svg {
+.balance-chart {
+  position: relative;
+}
+
+.balance-chart svg {
   display: block;
   width: 100%;
 }
@@ -321,7 +382,7 @@ button {
 .chart-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 6px;
+  padding: 8px 20px 20px;
 }
 
 .chart-labels span {
@@ -615,9 +676,18 @@ button {
     gap: 32px;
   }
 
+  .balance-glow {
+    height: 260px;
+  }
+
+  .balance-header {
+    padding: 40px 32px 0;
+  }
+
   .balance-amount {
     font-size: 60px;
     letter-spacing: -1.5px;
+    margin-bottom: 32px;
   }
 
   .stat-card {
@@ -628,8 +698,8 @@ button {
     font-size: 21px;
   }
 
-  .chart-card {
-    padding: 28px;
+  .chart-labels {
+    padding: 8px 32px 28px;
   }
 
   .movement-list,
