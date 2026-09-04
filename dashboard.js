@@ -34,29 +34,25 @@ async function loadDashboard() {
   }
 
   renderBalanceAndStats(transactions, now);
-  renderChart(transactions);
+  renderChart(transactions, now);
   renderRecentMovements(transactions.slice(0, 4));
   renderInsight(transactions, now);
 }
 
+// Faro es principalmente una app de control de GASTOS (Andrés no tiene
+// sueldo fijo ni carga sus retiros como ingreso: todo lo que gasta
+// representa su "sueldo" de ese período). Por eso el número principal del
+// Dashboard es el gasto del mes en curso, no un saldo tipo cuenta bancaria.
 function renderBalanceAndStats(transactions, now) {
-  const totalBalance = transactions.reduce((sum, tx) => {
-    return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
-  }, 0);
-
   const isInMonth = (dateStr, year, month) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.getMonth() === month && d.getFullYear() === year;
   };
 
   const monthTx = transactions.filter(tx => isInMonth(tx.occurred_on, now.getFullYear(), now.getMonth()));
-  const income = monthTx.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
   const expense = monthTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
 
-  document.getElementById('balance-amount').textContent = formatCurrency(totalBalance);
-  document.getElementById('stat-income').textContent = formatCurrency(income);
-  document.getElementById('stat-expense').textContent = formatCurrency(expense);
-  document.getElementById('stat-savings').textContent = formatCurrency(income - expense);
+  document.getElementById('balance-amount').textContent = formatCurrency(expense);
 
   // Delta de gastos vs. el mes anterior
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -76,24 +72,33 @@ function renderBalanceAndStats(transactions, now) {
   }
 }
 
-function renderChart(transactions) {
-  // Curva de saldo acumulado a lo largo del tiempo.
-  // Con pocos o ningún movimiento, se muestra una línea plana (estado inicial esperable).
-  const sorted = [...transactions].sort((a, b) => new Date(a.occurred_on) - new Date(b.occurred_on));
+function renderChart(transactions, now) {
+  // Curva de gasto ACUMULADO dentro del mes en curso, día a día — muestra
+  // el ritmo al que se va gastando. Se resetea solo cada mes (no es un
+  // saldo global tipo cuenta bancaria).
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+
+  const monthExpenses = transactions.filter(tx => {
+    if (tx.type !== 'expense') return false;
+    const d = new Date(tx.occurred_on + 'T00:00:00');
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
 
   let values;
-  if (sorted.length === 0) {
+  if (monthExpenses.length === 0) {
     values = [0.5, 0.5];
   } else {
-    let running = 0;
-    const points = sorted.map(tx => {
-      running += tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount);
-      return running;
+    const perDay = new Array(today).fill(0);
+    monthExpenses.forEach(tx => {
+      const day = new Date(tx.occurred_on + 'T00:00:00').getDate();
+      if (day >= 1 && day <= today) perDay[day - 1] += Number(tx.amount);
     });
-    const min = Math.min(...points, 0);
-    const max = Math.max(...points, 0);
-    const range = max - min || 1;
-    values = points.map(v => 0.1 + ((v - min) / range) * 0.8);
+    let running = 0;
+    const points = perDay.map(v => (running += v));
+    const max = Math.max(...points, 1);
+    values = points.map(v => 0.05 + (v / max) * 0.9);
     if (values.length === 1) values = [values[0], values[0]];
   }
 
@@ -102,14 +107,9 @@ function renderChart(transactions) {
   document.getElementById('chart-line').setAttribute('d', path);
   document.getElementById('chart-area').setAttribute('d', area);
 
-  const sortedDates = sorted.map(tx => tx.occurred_on);
   const optsShort = { day: 'numeric', month: 'short' };
-  document.getElementById('chart-label-start').textContent = sortedDates.length
-    ? new Date(sortedDates[0]).toLocaleDateString('es-AR', optsShort)
-    : '';
-  document.getElementById('chart-label-end').textContent = sortedDates.length
-    ? new Date(sortedDates[sortedDates.length - 1]).toLocaleDateString('es-AR', optsShort)
-    : '';
+  document.getElementById('chart-label-start').textContent = new Date(year, month, 1).toLocaleDateString('es-AR', optsShort);
+  document.getElementById('chart-label-end').textContent = now.toLocaleDateString('es-AR', optsShort);
 }
 
 function renderRecentMovements(recent) {
