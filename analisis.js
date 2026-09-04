@@ -29,6 +29,16 @@ function capitalize(str) {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 }
 
+// Normaliza un nombre para comparar "Alquiler 🏠" con "alquiler ":
+// saca emojis, acentos, mayúsculas y espacios de más.
+function normalizeName(str) {
+  return String(str || '')
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
 // ---------- Carga de datos ----------
 
 async function loadAllData() {
@@ -83,21 +93,28 @@ function buildCategoryBreakdown(monthKey) {
 
   // 1) Movimientos variables (excluye el pago de resumen de tarjeta,
   //    que se reconstruye por separado en el paso 3 para no duplicar).
-  allTransactions.forEach(tx => {
-    if (tx.type !== 'expense') return;
-    if (tx.category === SYSTEM_PAGAR_RESUMEN_LABEL) return;
+  const txExpenseThisMonth = allTransactions.filter(tx => {
+    if (tx.type !== 'expense') return false;
+    if (tx.category === SYSTEM_PAGAR_RESUMEN_LABEL) return false;
     const d = new Date(tx.occurred_on + 'T00:00:00');
-    if (FaroCuotas.monthKeyFromDate(d) !== monthKey) return;
-    addItem(tx.category, tx.description, Number(tx.amount), false);
+    return FaroCuotas.monthKeyFromDate(d) === monthKey;
   });
+  txExpenseThisMonth.forEach(tx => addItem(tx.category, tx.description, Number(tx.amount), false));
 
-  // 2) Servicios vencidos ese mes. Si ya se marcó como pagado, el pago
-  //    ya generó su propio movimiento (ver servicios.js) y ya quedó
-  //    contado en el paso 1 — acá solo sumamos los que faltan pagar.
+  // 2) Servicios vencidos ese mes. Si ya se marcó como pagado con el botón
+  //    de Servicios, ese pago ya generó su propio movimiento (ver
+  //    servicios.js) y ya quedó contado en el paso 1. Si en cambio se
+  //    cargó a mano desde Agregar movimiento con un nombre parecido (ej.
+  //    "Alquiler 🏠" el servicio y "Alquiler" el movimiento), también lo
+  //    tomamos como ya cubierto para no duplicarlo — solo que con el
+  //    monto real que se cargó, no el estimado.
   allServices.forEach(s => {
     if (!s.due_day) return;
     const payment = allServicePayments.find(p => p.service_id === s.id && p.period === monthKey);
     if (payment && payment.status === 'pagado') return;
+    const normServiceName = normalizeName(s.name);
+    const matchingTx = normServiceName && txExpenseThisMonth.find(tx => normalizeName(tx.description) === normServiceName);
+    if (matchingTx) return;
     if (!s.active) return;
     const categoryName = s.categories ? s.categories.name : null;
     addItem(categoryName, `${s.name} (pendiente)`, Number(s.estimated_amount || 0), true);
@@ -182,7 +199,7 @@ function renderRing(categories, total) {
 
   document.getElementById('ring-total').textContent = formatCurrency(total);
 
-  legend.innerHTML = categories.slice(0, 6).map(cat => {
+  legend.innerHTML = categories.map(cat => {
     const pct = total > 0 ? Math.round((cat.amount / total) * 100) : 0;
     const color = categoryColor(cat.name);
     const label = categoryLabelText(cat.name) || cat.name;
