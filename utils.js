@@ -41,7 +41,8 @@ const ICONS = {
   cash: `<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.3c0-1 .9-1.5 2-1.5s2 .55 2 1.4-.9 1.2-2 1.4c-1.1.2-2 .55-2 1.4s.9 1.5 2 1.5 2-.45 2-1.4" stroke-linecap="round"/>`,
   transfer: `<path d="M7 7h10l-3-3M17 17H7l3 3" stroke-linecap="round" stroke-linejoin="round"/>`,
   chevron: `<path d="M1 1l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
-  bolt: `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/>`
+  bolt: `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/>`,
+  chart: `<path d="M6 20V13M12 20V6M18 20V16" stroke-linecap="round"/>`
 };
 function iconSvg(name, size = 20) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICONS[name]}</svg>`;
