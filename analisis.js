@@ -84,9 +84,14 @@ function buildCategoryBreakdown(monthKey) {
 
   function addItem(categoryRaw, itemName, amount, pending) {
     if (!(amount > 0)) return;
-    const key = (categoryRaw && categoryRaw.trim()) ? categoryRaw : 'Sin categoría';
-    if (!map.has(key)) map.set(key, { amount: 0, items: [] });
-    const bucket = map.get(key);
+    const displayName = (categoryRaw && categoryRaw.trim()) ? categoryRaw.trim() : 'Sin categoría';
+    // Agrupamos por nombre normalizado (sin mayúsculas/acentos/espacios de
+    // más) para que "Super" y "super " no queden como categorías separadas
+    // por una diferencia de tipeo. Se muestra el primer nombre tal cual se
+    // cargó la primera vez que aparece.
+    const normKey = normalizeName(displayName) || 'sin categoria';
+    if (!map.has(normKey)) map.set(normKey, { name: displayName, amount: 0, items: [] });
+    const bucket = map.get(normKey);
     bucket.amount += amount;
     bucket.items.push({ name: itemName, amount, pending: !!pending });
   }
@@ -270,7 +275,7 @@ function render() {
   document.getElementById('month-next-btn').disabled = (viewMonthKey === currentKey);
 
   const categoryMap = buildCategoryBreakdown(viewMonthKey);
-  const categories = Array.from(categoryMap, ([name, val]) => ({ name, ...val })).sort((a, b) => b.amount - a.amount);
+  const categories = Array.from(categoryMap.values()).sort((a, b) => b.amount - a.amount);
   const total = categories.reduce((s, c) => s + c.amount, 0);
 
   const txForMonth = allTransactions.filter(tx => FaroCuotas.monthKeyFromDate(new Date(tx.occurred_on + 'T00:00:00')) === viewMonthKey);
