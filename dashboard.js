@@ -45,7 +45,7 @@ function renderBalanceAndStats(transactions, now) {
   }, 0);
 
   const isInMonth = (dateStr, year, month) => {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T00:00:00');
     return d.getMonth() === month && d.getFullYear() === year;
   };
 
@@ -159,7 +159,7 @@ function renderInsight(transactions, now) {
   }
 
   const isThisMonth = (dateStr) => {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T00:00:00');
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   };
   const monthTx = transactions.filter(tx => isThisMonth(tx.occurred_on));
