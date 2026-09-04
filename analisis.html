@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faro — Análisis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Ícono / PWA -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="shortcut icon" href="/img/favicon.ico">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Faro">
+<meta name="theme-color" content="#0B0D12">
+
+<style>
+  .analisis-shell { max-width: 720px; margin: 0 auto; padding-bottom: 32px; }
+
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 18px; background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: var(--text-primary); flex-shrink: 0; }
+  .icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .month-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; }
+  .month-label { color: var(--text-primary); font-size: 15px; font-weight: 600; min-width: 140px; text-align: center; }
+
+  .card { background: var(--card); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; }
+  .card-title { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; }
+
+  /* Gráfico semanal ingresos/gastos */
+  .weeks-chart { display: flex; justify-content: space-around; align-items: flex-end; height: 140px; }
+  .week-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .week-bars { display: flex; align-items: flex-end; gap: 5px; height: 110px; }
+  .week-bar { width: 12px; border-radius: 4px; min-height: 3px; }
+  .week-bar.income { background: var(--green); }
+  .week-bar.expense { background: var(--red); }
+  .week-label { color: var(--text-tertiary); font-size: 11px; }
+  .legend-row { display: flex; gap: 20px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+
+  /* Anillo por categoría */
+  .ring-row { display: flex; align-items: center; gap: 28px; margin-bottom: 8px; }
+  .ring-wrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+  .ring-wrap svg { width: 100%; height: 100%; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .ring-center-amount { color: var(--text-primary); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ring-center-label { color: var(--text-tertiary); font-size: 11px; margin-top: 2px; }
+
+  .ring-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .ring-legend-item { display: flex; align-items: center; gap: 8px; }
+  .ring-legend-item .legend-dot { width: 9px; height: 9px; }
+  .ring-legend-name { color: var(--text-primary); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ring-legend-pct { color: var(--text-tertiary); font-size: 12px; flex-shrink: 0; }
+
+  .category-list { margin-top: 8px; }
+  .category-block { margin-bottom: 22px; }
+  .category-block:last-child { margin-bottom: 0; }
+  .category-block-header { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-bottom: 10px; }
+  .category-block-name { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: 15px; font-weight: 500; min-width: 0; }
+  .category-block-name span.txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .category-block-amount { color: var(--text-primary); font-size: 15px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .category-item-row { display: flex; justify-content: space-between; padding: 7px 0 7px 14px; border-left: 2px solid var(--border); gap: 12px; }
+  .category-item-name { color: var(--text-tertiary); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .category-item-amount { color: var(--text-tertiary); font-size: 13px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .category-item-row.pendiente .category-item-name,
+  .category-item-row.pendiente .category-item-amount { color: var(--blue); }
+
+  .empty-state { color: var(--text-tertiary); font-size: 14px; text-align: center; padding: 40px 20px; }
+
+  @media (min-width: 900px) {
+    .ring-row { align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <main class="main">
+    <div class="analisis-shell">
+
+      <div class="page-header">
+        <div class="page-title">Análisis</div>
+      </div>
+
+      <div class="month-nav">
+        <button class="icon-btn" id="month-prev-btn" aria-label="Mes anterior">‹</button>
+        <div class="month-label" id="month-label">—</div>
+        <button class="icon-btn" id="month-next-btn" aria-label="Mes siguiente">›</button>
+      </div>
+
+      <div id="analisis-content">
+        <div class="card">
+          <div class="card-title">Ingresos vs. gastos</div>
+          <div class="weeks-chart" id="weeks-chart"></div>
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Ingresos</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Gastos</div>
+          </div>
+        </div>
+
+        <div class="card" id="categorias-card">
+          <div class="card-title">Por categoría</div>
+          <div class="ring-row">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 140 140" id="ring-svg"></svg>
+              <div class="ring-center">
+                <div class="ring-center-amount" id="ring-total">$0</div>
+                <div class="ring-center-label">total del mes</div>
+              </div>
+            </div>
+            <div class="ring-legend" id="ring-legend"></div>
+          </div>
+          <div class="category-list" id="category-list"></div>
+          <div class="empty-state" id="categorias-empty" style="display:none">
+            Todavía no hay gastos categorizados este mes.
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-dot"></div>
+          <div class="insight-text" id="insight-text"></div>
+        </div>
+      </div>
+
+      <div class="empty-state" id="mes-empty" style="display:none">
+        No hay movimientos registrados en este mes.
+      </div>
+
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+  <button class="fab" id="fab" aria-label="Agregar movimiento"></button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="utils.js"></script>
+<script src="nav.js"></script>
+<script src="cuotas-engine.js"></script>
+<script src="analisis.js"></script>
+</body>
+</html>
