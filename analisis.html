@@ -60,6 +60,12 @@
   .ring-legend-name { color: var(--text-primary); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ring-legend-pct { color: var(--text-tertiary); font-size: 12px; flex-shrink: 0; }
 
+  .totals-split { display: flex; gap: 12px; margin: 20px 0 4px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .totals-split-item { flex: 1; min-width: 0; }
+  .totals-split-label { color: var(--text-tertiary); font-size: 12px; margin-bottom: 4px; }
+  .totals-split-value { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .totals-split-value.pendiente { color: var(--blue); }
+
   .category-list { margin-top: 8px; }
   .category-block { margin-bottom: 22px; }
   .category-block:last-child { margin-bottom: 0; }
@@ -119,6 +125,16 @@
               </div>
             </div>
             <div class="ring-legend" id="ring-legend"></div>
+          </div>
+          <div class="totals-split" id="totals-split" style="display:none">
+            <div class="totals-split-item">
+              <div class="totals-split-label">Ya gastado</div>
+              <div class="totals-split-value" id="totals-split-gastado">$0</div>
+            </div>
+            <div class="totals-split-item">
+              <div class="totals-split-label">Pendiente de pagar</div>
+              <div class="totals-split-value pendiente" id="totals-split-pendiente">$0</div>
+            </div>
           </div>
           <div class="category-list" id="category-list"></div>
           <div class="empty-state" id="categorias-empty" style="display:none">
