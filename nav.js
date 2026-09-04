@@ -4,6 +4,7 @@
 const NAV_ITEMS = [
   { key: 'dashboard', icon: 'home', label: 'Inicio', href: 'index.html' },
   { key: 'movimientos', icon: 'list', label: 'Movimientos', href: 'movimientos.html' },
+  { key: 'analisis', icon: 'chart', label: 'Análisis', href: 'analisis.html' },
   { key: 'cuotas', icon: 'stack', label: 'Cuotas', href: 'cuotas.html' },
   { key: 'fondos', icon: 'card', label: 'Fondos', href: 'fondos.html' },
   { key: 'servicios', icon: 'bolt', label: 'Servicios', href: 'servicios.html' },
