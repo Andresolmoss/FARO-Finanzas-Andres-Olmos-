@@ -125,7 +125,18 @@ function buildCategoryBreakdown(monthKey) {
     addItem(categoryName, `${s.name} (pendiente)`, Number(s.estimated_amount || 0), true);
   });
 
-  // 3) Cuota mensual de cada compra en cuotas activa ese mes.
+  // 3) Cuota mensual de cada compra en cuotas activa ese mes. El monto se
+  //    calcula siempre (para no perder de vista el compromiso), pero solo
+  //    cuenta como "ya gastado" si este mes ya se cargó el pago del resumen
+  //    de la tarjeta (categoría especial "Pagar resumen"). Si todavía no se
+  //    cargó ese pago, el Dashboard no lo tiene contado todavía -> queda
+  //    como "pendiente", igual que un servicio sin pagar.
+  const resumenPagadoEsteMes = allTransactions.some(tx => {
+    if (tx.type !== 'expense') return false;
+    if (tx.category !== SYSTEM_PAGAR_RESUMEN_LABEL) return false;
+    const d = new Date(tx.occurred_on + 'T00:00:00');
+    return FaroCuotas.monthKeyFromDate(d) === monthKey;
+  });
   allPurchases.forEach(p => {
     const purchase = {
       total_amount: Number(p.total_amount),
@@ -135,7 +146,8 @@ function buildCategoryBreakdown(monthKey) {
     const n = FaroCuotas.installmentNumberForMonth(purchase, monthKey);
     if (n === null) return;
     const amount = FaroCuotas.amountForInstallmentNumber(purchase, n);
-    addItem(p.category, `${p.description} (cuota ${n}/${p.installment_count})`, amount, false);
+    const suffix = resumenPagadoEsteMes ? '' : ' · pendiente';
+    addItem(p.category, `${p.description} (cuota ${n}/${p.installment_count}${suffix})`, amount, !resumenPagadoEsteMes);
   });
 
   return map;
@@ -255,10 +267,48 @@ function renderCategoryList(categories) {
   }).join('');
 }
 
-function renderInsight(categories, total) {
+// Replica exactamente la fórmula de "Gastos" del Dashboard: suma de todos
+// los movimientos reales de tipo gasto de ese mes, sin excepciones (incluye
+// por ejemplo "Pagar resumen" si ya se cargó). Así "Ya gastado" siempre
+// coincide con lo que muestra el Dashboard, más allá de cómo se arme el
+// desglose por categoría acá (que reconstruye cuotas y servicios pendientes
+// para dar más detalle, y puede no calzar centavo a centavo con un pago real).
+function computeRealGastoDelMes(monthKey) {
+  return allTransactions
+    .filter(tx => tx.type === 'expense' && FaroCuotas.monthKeyFromDate(new Date(tx.occurred_on + 'T00:00:00')) === monthKey)
+    .reduce((s, tx) => s + Number(tx.amount), 0);
+}
+
+// Separa el total del anillo en lo que ya está reflejado como movimiento
+// real (coincide con "Gastos" del Dashboard) y lo que todavía es un
+// compromiso sin confirmar (servicios vencidos sin pagar, cuotas sin
+// resumen cargado). Sirve para explicar por qué el Dashboard puede mostrar
+// menos que Análisis en el mismo mes.
+function splitGastadoPendiente(total, monthKey) {
+  const gastado = computeRealGastoDelMes(monthKey);
+  const pendiente = Math.max(0, total - gastado);
+  return { gastado, pendiente };
+}
+
+function renderTotalsSplit(gastado, pendiente) {
+  const wrap = document.getElementById('totals-split');
+  if (pendiente <= 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  document.getElementById('totals-split-gastado').textContent = formatCurrency(gastado);
+  document.getElementById('totals-split-pendiente').textContent = formatCurrency(pendiente);
+}
+
+function renderInsight(categories, total, gastado, pendiente) {
   const el = document.getElementById('insight-text');
   if (total <= 0 || categories.length === 0) {
     el.textContent = 'Todavía no hay gastos categorizados este mes.';
+    return;
+  }
+  if (pendiente > 0) {
+    el.textContent = `De ${formatCurrency(total)} en total este mes, ya gastaste ${formatCurrency(gastado)} y todavía tenés ${formatCurrency(pendiente)} pendientes de pagar en servicios y cuotas — por eso el Dashboard puede mostrar menos: ahí solo cuenta lo que ya pagaste.`;
     return;
   }
   const top = categories[0];
@@ -291,10 +341,13 @@ function render() {
   contentEl.style.display = '';
   mesEmptyEl.style.display = 'none';
 
+  const { gastado, pendiente } = splitGastadoPendiente(total, viewMonthKey);
+
   renderWeeklyChart(buildWeeklyBars(viewMonthKey));
   renderRing(categories, total);
+  renderTotalsSplit(gastado, pendiente);
   renderCategoryList(categories);
-  renderInsight(categories, total);
+  renderInsight(categories, total, gastado, pendiente);
 }
 
 document.getElementById('month-prev-btn').addEventListener('click', () => {
