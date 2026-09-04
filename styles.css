@@ -314,60 +314,15 @@ button {
   font-size: 44px;
   font-weight: 600;
   letter-spacing: -1px;
-  margin-bottom: 24px;
+  margin-bottom: 8px;
   text-align: center;
 }
 
-.stat-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  flex: 1;
-  background: rgba(19, 22, 29, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.stat-card-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.stat-card-top svg {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-}
-
-.stat-icon-income { color: var(--green); }
-.stat-icon-expense { color: var(--red); }
-.stat-icon-savings { color: var(--text-secondary); }
-
-.stat-card .label {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.stat-card .value {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.stat-card .value.income { color: var(--green); }
-.stat-card .value.expense { color: var(--red); }
-.stat-card .value.savings { color: var(--text-primary); }
-
-.stat-delta {
+.balance-delta {
   color: var(--text-tertiary);
-  font-size: 10px;
-  margin-top: 3px;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 24px;
 }
 
 .balance-chart {
@@ -687,15 +642,12 @@ button {
   .balance-amount {
     font-size: 60px;
     letter-spacing: -1.5px;
+    margin-bottom: 10px;
+  }
+
+  .balance-delta {
+    font-size: 14px;
     margin-bottom: 32px;
-  }
-
-  .stat-card {
-    padding: 20px;
-  }
-
-  .stat-card .value {
-    font-size: 21px;
   }
 
   .chart-labels {
